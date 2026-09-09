@@ -52,6 +52,7 @@ const rewardTransactionSchema = new mongoose.Schema(
         "RELEASED",
         "REVERSED",
         "COMPLETED",
+        "REJECTED",
       ],
       default: "PENDING",
     },

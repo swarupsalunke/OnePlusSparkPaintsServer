@@ -1,5 +1,36 @@
 const Report = require("../models/Report");
 const ScheduledReport = require("../models/ScheduledReport");
+const fs = require("fs");
+const path = require("path");
+
+// =====================================================
+// REPORT FILE HELPERS
+// =====================================================
+
+const getUploadedFilePath = (fileName) => {
+  if (!fileName) return null;
+
+  return path.join(
+    __dirname,
+    "../uploads/reports",
+    fileName
+  );
+};
+
+const deleteReportFile = (fileName) => {
+  if (!fileName) return;
+
+  const filePath = getUploadedFilePath(fileName);
+
+  if (filePath && fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+};
+
+
+// =====================================================
+// REPORT DASHBOARD
+// =====================================================
 
 exports.getReportDashboard = async (req, res) => {
   try {
@@ -58,9 +89,10 @@ exports.getReportDashboard = async (req, res) => {
 };
 
 
-// ===============================
+// =====================================================
 // GET RECENT REPORTS
-// ===============================
+// =====================================================
+
 exports.getReports = async (req, res) => {
   try {
     const reports = await Report.find()
@@ -83,9 +115,10 @@ exports.getReports = async (req, res) => {
 };
 
 
-// ===============================
+// =====================================================
 // CREATE / GENERATE REPORT
-// ===============================
+// =====================================================
+
 exports.createReport = async (req, res) => {
   try {
     const {
@@ -96,12 +129,62 @@ exports.createReport = async (req, res) => {
       format,
     } = req.body;
 
+    // Validate required file
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Report file is required",
+      });
+    }
+
+    // Validate format
+    const normalizedFormat = String(format || "").toUpperCase();
+
+    if (!["PDF", "EXCEL", "CSV"].includes(normalizedFormat)) {
+      deleteReportFile(req.file.filename);
+
+      return res.status(400).json({
+        success: false,
+        message: "Invalid report format",
+      });
+    }
+
+    // Validate uploaded file extension against selected format
+    const uploadedExtension = path
+      .extname(req.file.originalname)
+      .toLowerCase();
+
+    const formatExtensions = {
+      PDF: [".pdf"],
+      EXCEL: [".xlsx", ".xls"],
+      CSV: [".csv"],
+    };
+
+    if (
+      !formatExtensions[normalizedFormat].includes(
+        uploadedExtension
+      )
+    ) {
+      deleteReportFile(req.file.filename);
+
+      return res.status(400).json({
+        success: false,
+        message: `Selected format ${normalizedFormat} does not match uploaded file`,
+      });
+    }
+
     const report = await Report.create({
       reportName,
       category,
       reportType,
       generatedBy,
-      format,
+      format: normalizedFormat,
+
+      fileName: req.file.filename,
+
+      filePath: `uploads/reports/${req.file.filename}`,
+
+      originalFileName: req.file.originalname,
     });
 
     res.status(201).json({
@@ -110,6 +193,11 @@ exports.createReport = async (req, res) => {
       report,
     });
   } catch (error) {
+    // Delete uploaded file if database operation fails
+    if (req.file?.filename) {
+      deleteReportFile(req.file.filename);
+    }
+
     console.error("Create report error:", error);
 
     res.status(500).json({
@@ -121,9 +209,10 @@ exports.createReport = async (req, res) => {
 };
 
 
-// ===============================
+// =====================================================
 // GET SINGLE REPORT
-// ===============================
+// =====================================================
+
 exports.getReportById = async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -150,9 +239,11 @@ exports.getReportById = async (req, res) => {
   }
 };
 
-// ===============================
+
+// =====================================================
 // UPDATE REPORT
-// ===============================
+// =====================================================
+
 exports.updateReport = async (req, res) => {
   try {
     const {
@@ -163,34 +254,116 @@ exports.updateReport = async (req, res) => {
       format,
     } = req.body;
 
-    const report = await Report.findByIdAndUpdate(
-      req.params.id,
-      {
-        reportName,
-        category,
-        reportType,
-        generatedBy,
-        format,
-      },
-      {
-        returnDocument: "after",
-        runValidators: true,
-      }
+    const existingReport = await Report.findById(
+      req.params.id
     );
 
-    if (!report) {
+    if (!existingReport) {
+      // If multer uploaded a file but report doesn't exist,
+      // remove the newly uploaded file.
+      if (req.file?.filename) {
+        deleteReportFile(req.file.filename);
+      }
+
       return res.status(404).json({
         success: false,
         message: "Report not found",
       });
     }
 
+    const normalizedFormat = String(
+      format || existingReport.format || ""
+    ).toUpperCase();
+
+    if (!["PDF", "EXCEL", "CSV"].includes(normalizedFormat)) {
+      if (req.file?.filename) {
+        deleteReportFile(req.file.filename);
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "Invalid report format",
+      });
+    }
+
+    const updateData = {
+      reportName,
+      category,
+      reportType,
+      generatedBy,
+      format: normalizedFormat,
+    };
+
+    // -------------------------------------------------
+    // NEW FILE UPLOADED
+    // -------------------------------------------------
+
+    if (req.file) {
+      const uploadedExtension = path
+        .extname(req.file.originalname)
+        .toLowerCase();
+
+      const formatExtensions = {
+        PDF: [".pdf"],
+        EXCEL: [".xlsx", ".xls"],
+        CSV: [".csv"],
+      };
+
+      if (
+        !formatExtensions[normalizedFormat].includes(
+          uploadedExtension
+        )
+      ) {
+        deleteReportFile(req.file.filename);
+
+        return res.status(400).json({
+          success: false,
+          message: `Selected format ${normalizedFormat} does not match uploaded file`,
+        });
+      }
+
+      updateData.fileName = req.file.filename;
+
+      updateData.filePath =
+        `uploads/reports/${req.file.filename}`;
+
+      updateData.originalFileName =
+        req.file.originalname;
+    }
+
+    const updatedReport = await Report.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      {
+        returnDocument: "after",
+        runValidators: true,
+      }
+    );
+
+    // -------------------------------------------------
+    // DELETE OLD FILE AFTER SUCCESSFUL UPDATE
+    // -------------------------------------------------
+
+    if (
+      req.file &&
+      existingReport.fileName &&
+      existingReport.fileName !== req.file.filename
+    ) {
+      deleteReportFile(existingReport.fileName);
+    }
+
     res.status(200).json({
       success: true,
       message: "Report updated successfully",
-      report,
+      report: updatedReport,
     });
   } catch (error) {
+    // If update failed after multer uploaded a new file,
+    // remove that new file.
+    if (req.file?.filename) {
+      deleteReportFile(req.file.filename);
+    }
+
     console.error("Update report error:", error);
 
     res.status(500).json({
@@ -202,9 +375,10 @@ exports.updateReport = async (req, res) => {
 };
 
 
-// ===============================
+// =====================================================
 // MARK REPORT AS DOWNLOADED
-// ===============================
+// =====================================================
+
 exports.downloadReport = async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -237,9 +411,10 @@ exports.downloadReport = async (req, res) => {
 };
 
 
-// ===============================
+// =====================================================
 // GET SCHEDULED REPORTS
-// ===============================
+// =====================================================
+
 exports.getScheduledReports = async (req, res) => {
   try {
     const reports = await ScheduledReport.find()
@@ -262,9 +437,10 @@ exports.getScheduledReports = async (req, res) => {
 };
 
 
-// ===============================
+// =====================================================
 // CREATE SCHEDULED REPORT
-// ===============================
+// =====================================================
+
 exports.createScheduledReport = async (req, res) => {
   try {
     const {
@@ -304,19 +480,21 @@ exports.createScheduledReport = async (req, res) => {
 };
 
 
-// ===============================
+// =====================================================
 // UPDATE SCHEDULED REPORT
-// ===============================
+// =====================================================
+
 exports.updateScheduledReport = async (req, res) => {
   try {
-    const scheduledReport = await ScheduledReport.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        returnDocument: "after",
-        runValidators: true,
-      }
-    );
+    const scheduledReport =
+      await ScheduledReport.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        {
+          returnDocument: "after",
+          runValidators: true,
+        }
+      );
 
     if (!scheduledReport) {
       return res.status(404).json({
@@ -341,15 +519,110 @@ exports.updateScheduledReport = async (req, res) => {
   }
 };
 
+// =====================================================
+// DOWNLOAD SCHEDULED REPORT
+// =====================================================
 
-// ===============================
+// =====================================================
+// DOWNLOAD SCHEDULED REPORT
+// =====================================================
+
+exports.downloadScheduledReport = async (req, res) => {
+  try {
+    const scheduledReport =
+      await ScheduledReport.findById(req.params.id);
+
+    if (!scheduledReport) {
+      return res.status(404).json({
+        success: false,
+        message: "Scheduled report not found",
+      });
+    }
+
+    const { format } = scheduledReport;
+
+    if (!["PDF", "EXCEL"].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        message: "Unsupported report format",
+      });
+    }
+
+    /*
+      Actual PDF / Excel generation will be connected here
+      once the corresponding report data source is available.
+    */
+
+    return res.status(200).json({
+      success: true,
+      message: "Scheduled report found",
+      scheduledReport,
+      format,
+    });
+  } catch (error) {
+    console.error(
+      "Download scheduled report error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to download scheduled report",
+      error: error.message,
+    });
+  }
+};
+
+// =====================================================
+// DELETE REPORT
+// =====================================================
+
+exports.deleteReport = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+
+    // Report not found
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Report not found",
+      });
+    }
+
+    // Delete uploaded file from server
+    if (report.fileName) {
+      deleteReportFile(report.fileName);
+    }
+
+    // Delete report from database
+    await Report.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Report deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete report error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete report",
+      error: error.message,
+    });
+  }
+};
+
+
+// =====================================================
 // DELETE SCHEDULED REPORT
-// ===============================
+// =====================================================
+
 exports.deleteScheduledReport = async (req, res) => {
   try {
-    const scheduledReport = await ScheduledReport.findByIdAndDelete(
-      req.params.id
-    );
+    const scheduledReport =
+      await ScheduledReport.findByIdAndDelete(
+        req.params.id
+      );
 
     if (!scheduledReport) {
       return res.status(404).json({

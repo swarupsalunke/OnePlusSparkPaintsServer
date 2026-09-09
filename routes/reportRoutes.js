@@ -10,35 +10,81 @@ const {
   getScheduledReports,
   createScheduledReport,
   updateScheduledReport,
+  downloadScheduledReport,
+  deleteReport,
   deleteScheduledReport,
 } = require("../controllers/reportController");
 
+const uploadReport = require("../middleware/uploadReport");
+
 const router = express.Router();
+
+
+// =====================================================
+// REPORT DASHBOARD
+// =====================================================
 
 router.get("/dashboard", getReportDashboard);
 
-// ===============================
+
+// =====================================================
 // RECENT REPORTS
-// ===============================
+// =====================================================
+
+// Get all recent reports
 router.get("/", getReports);
 
-router.post("/", createReport);
+// Create / upload new report
+router.post(
+  "/",
+  uploadReport.single("reportFile"),
+  createReport
+);
 
+// Get single report
 router.get("/:id", getReportById);
 
-router.put("/:id", updateReport);
+// Update report + optional new file
+router.put(
+  "/:id",
+  uploadReport.single("reportFile"),
+  updateReport
+);
 
+// Mark report as downloaded
 router.get("/:id/download", downloadReport);
 
-// ===============================
+
+// =====================================================
 // SCHEDULED REPORTS
-// ===============================
+// =====================================================
+
+// Get scheduled reports
 router.get("/scheduled/list", getScheduledReports);
 
+// Create scheduled report
 router.post("/scheduled", createScheduledReport);
 
-router.put("/scheduled/:id", updateScheduledReport);
+// Update scheduled report
+router.put(
+  "/scheduled/:id",
+  updateScheduledReport
+);
 
-router.delete("/scheduled/:id", deleteScheduledReport);
+// Download scheduled report
+router.get(
+  "/scheduled/:id/download",
+  downloadScheduledReport
+);
+
+// Delete report
+router.delete("/:id", deleteReport);
+
+// Delete scheduled report
+router.delete(
+  "/scheduled/:id",
+  deleteScheduledReport
+);
+
 
 module.exports = router;

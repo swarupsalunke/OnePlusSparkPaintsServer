@@ -331,7 +331,7 @@ const updateApprovalRequest = async (req, res) => {
         remarks: req.body.remarks,
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       }
     );

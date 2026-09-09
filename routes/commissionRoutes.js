@@ -11,22 +11,40 @@ const {
   deleteCommission,
 } = require("../controllers/commissionController");
 
-// Create commission
+// =====================================================
+// CREATE COMMISSION
+// =====================================================
+
 router.post("/", createCommission);
 
-// Get all commissions
+// =====================================================
+// GET ALL COMMISSIONS
+// =====================================================
+
 router.get("/", getCommissions);
 
-// Get single commission
+// =====================================================
+// GET COMMISSION BY ID
+// =====================================================
+
 router.get("/:id", getCommissionById);
 
-// Update complete commission
+// =====================================================
+// UPDATE COMPLETE COMMISSION
+// =====================================================
+
 router.put("/:id", updateCommission);
 
-// Update commission status
+// =====================================================
+// UPDATE COMMISSION STATUS
+// =====================================================
+
 router.put("/:id/status", updateCommissionStatus);
 
-// Delete commission
+// =====================================================
+// DELETE COMMISSION
+// =====================================================
+
 router.delete("/:id", deleteCommission);
 
 module.exports = router;

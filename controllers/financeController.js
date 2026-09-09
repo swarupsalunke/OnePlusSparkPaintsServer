@@ -279,7 +279,7 @@ const updateFinanceTransaction = async (req, res) => {
           assignedTo: req.body.assignedTo || null,
         },
         {
-          new: true,
+          returnDocument: "after",
           runValidators: true,
         }
       );

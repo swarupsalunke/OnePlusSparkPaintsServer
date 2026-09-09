@@ -40,8 +40,27 @@ const reportSchema = new mongoose.Schema(
 
     format: {
       type: String,
-      enum: ["PDF", "EXCEL"],
+      enum: ["PDF", "EXCEL", "CSV"],
       required: true,
+    },
+
+    // Uploaded report file information
+    fileName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    filePath: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    originalFileName: {
+      type: String,
+      default: "",
+      trim: true,
     },
 
     downloaded: {

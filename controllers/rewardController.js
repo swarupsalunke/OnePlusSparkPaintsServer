@@ -411,7 +411,16 @@ const getRewardTransactions = async (req, res) => {
 const updateRewardTransaction = async (req, res) => {
   try {
     const { id } = req.params;
-    const { description, reference, status } = req.body;
+
+    const {
+      userId,
+      userType,
+      points,
+      cashAmount,
+      description,
+      reference,
+      status,
+    } = req.body;
 
     const transaction = await RewardTransaction.findById(id);
 
@@ -422,14 +431,46 @@ const updateRewardTransaction = async (req, res) => {
       });
     }
 
+    // Update User
+    if (userId !== undefined) {
+      const user = await User.findById(userId);
+
+      if (!user || !["DEALER", "PAINTER"].includes(user.role)) {
+        return res.status(404).json({
+          success: false,
+          message: "Dealer or Painter not found",
+        });
+      }
+
+      transaction.user = userId;
+    }
+
+    // Update User Type
+    if (userType !== undefined) {
+      transaction.userType = userType;
+    }
+
+    // Update Points
+    if (points !== undefined) {
+      transaction.points = Number(points);
+    }
+
+    // Update Cash Amount
+    if (cashAmount !== undefined) {
+      transaction.cashAmount = Number(cashAmount);
+    }
+
+    // Update Description
     if (description !== undefined) {
       transaction.description = description;
     }
 
+    // Update Reference
     if (reference !== undefined) {
       transaction.reference = reference;
     }
 
+    // Update Status
     if (status !== undefined) {
       transaction.status = status;
     }
@@ -441,6 +482,7 @@ const updateRewardTransaction = async (req, res) => {
       message: "Reward transaction updated successfully",
       transaction,
     });
+
   } catch (error) {
     console.error("Update reward transaction error:", error);
 

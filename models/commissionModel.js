@@ -2,64 +2,69 @@ const mongoose = require("mongoose");
 
 const commissionSchema = new mongoose.Schema(
   {
-    invoiceNumber: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
+    // =====================================================
+    // USER
+    // =====================================================
 
-    customer: {
+    user: {
       type: String,
       required: true,
       trim: true,
     },
 
-    store: {
+    // =====================================================
+    // USER TYPE
+    // =====================================================
+
+    userType: {
       type: String,
       required: true,
       trim: true,
     },
 
-    salesExecutive: {
+    // =====================================================
+    // BRANCH
+    // =====================================================
+
+    branch: {
       type: String,
       required: true,
       trim: true,
     },
+
+    // =====================================================
+    // TERRITORY
+    // =====================================================
 
     territory: {
       type: String,
-      default: "",
+      required: true,
       trim: true,
     },
 
-    saleDate: {
-      type: Date,
-      required: true,
-    },
+    // =====================================================
+    // SCHEME / SOURCE
+    // =====================================================
 
-    invoiceValue: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-
-    saleType: {
+    schemeSource: {
       type: String,
-      enum: ["CASH", "CREDIT"],
       required: true,
+      trim: true,
     },
 
-    paymentDate: {
-      type: Date,
-      default: null,
-    },
+    // =====================================================
+    // SALES AMOUNT
+    // =====================================================
 
-    recoveryDays: {
+    salesAmount: {
       type: Number,
-      default: 0,
+      required: true,
       min: 0,
     },
+
+    // =====================================================
+    // REWARD POINTS
+    // =====================================================
 
     rewardPoints: {
       type: Number,
@@ -67,37 +72,51 @@ const commissionSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // =====================================================
+    // CASH REWARD
+    // =====================================================
+
+    cashReward: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // =====================================================
+    // COMMISSION %
+    // =====================================================
+
     commissionPercentage: {
       type: Number,
       default: 0,
       min: 0,
     },
 
-    commissionAmount: {
+    // =====================================================
+    // PENALTY
+    // =====================================================
+
+    penalty: {
       type: Number,
       default: 0,
       min: 0,
     },
 
-    penaltyAmount: {
+    // =====================================================
+    // NET PAYABLE
+    // =====================================================
+
+    netPayable: {
       type: Number,
       default: 0,
       min: 0,
     },
 
-    netCommission: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+    // =====================================================
+    // STATUS
+    // =====================================================
 
-    paymentStatus: {
-      type: String,
-      enum: ["PENDING", "PAID", "DELAYED"],
-      default: "PENDING",
-    },
-
-    commissionStatus: {
+    status: {
       type: String,
       enum: [
         "PENDING_CALCULATION",
@@ -109,7 +128,17 @@ const commissionSchema = new mongoose.Schema(
       ],
       default: "PENDING_CALCULATION",
     },
+
+    // =====================================================
+    // PAYMENT DATE
+    // =====================================================
+
+    paymentDate: {
+      type: Date,
+      default: null,
+    },
   },
+
   {
     timestamps: true,
   }

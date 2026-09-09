@@ -224,7 +224,7 @@ exports.updateContact = async (req, res) => {
       req.params.id,
       updateData,
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       }
     );

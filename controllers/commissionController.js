@@ -1,450 +1,520 @@
 const Commission = require("../models/commissionModel");
 
-// =========================================================
-// CREATE / CALCULATE COMMISSION
-// =========================================================
+// =====================================================
+// CREATE COMMISSION
+// =====================================================
+
 exports.createCommission = async (req, res) => {
-    try {
-        const {
-            invoiceNumber,
-            customer,
-            store,
-            territory,
-            salesExecutive,
-            saleDate,
-            invoiceValue,
-            saleType,
-            paymentDate,
-            paymentStatus,
-            rewardPoints,
-        } = req.body;
+  try {
+    const {
+      user,
+      userType,
+      branch,
+      territory,
+      schemeSource,
+      salesAmount,
+      rewardPoints,
+      cashReward,
+      commissionPercentage,
+      penalty,
+      netPayable,
+      status,
+      paymentDate,
+    } = req.body;
 
-        let recoveryDays = 0;
-        let commissionPercentage = 0;
-        let commissionAmount = 0;
-        let penaltyAmount = 0;
+    // -------------------------------------------------
+    // REQUIRED FIELDS
+    // -------------------------------------------------
 
-        // Calculate recovery days for credit sale
-        if (saleType === "CREDIT" && paymentDate) {
-            const start = new Date(saleDate);
-            const payment = new Date(paymentDate);
-
-            recoveryDays = Math.max(
-                0,
-                Math.ceil(
-                    (payment - start) / (1000 * 60 * 60 * 24)
-                )
-            );
-        }
-
-        // Cash Sale → 1%
-        if (saleType === "CASH") {
-            commissionPercentage = 1;
-        }
-
-        // Credit Sale
-        if (saleType === "CREDIT") {
-            if (recoveryDays <= 60) {
-                commissionPercentage = 1;
-            } else if (recoveryDays <= 90) {
-                commissionPercentage = 0.5;
-            } else {
-                commissionPercentage = 0;
-                penaltyAmount = Number(invoiceValue) * 0.01;
-            }
-        }
-
-        // Commission Amount
-        commissionAmount =
-            Number(invoiceValue) *
-            (commissionPercentage / 100);
-
-        // Net Commission
-        const netCommission = Math.max(
-            0,
-            commissionAmount - penaltyAmount
-        );
-
-        // Create Commission
-        const commission = await Commission.create({
-            invoiceNumber,
-            customer,
-            store,
-            territory,
-            salesExecutive,
-            saleDate,
-            invoiceValue,
-            saleType,
-            paymentDate: paymentDate || null,
-            recoveryDays,
-            rewardPoints:
-                rewardPoints !== undefined
-                    ? Number(rewardPoints)
-                    : 0,
-            commissionPercentage,
-            commissionAmount,
-            penaltyAmount,
-            netCommission,
-            paymentStatus:
-                paymentStatus ||
-                (saleType === "CREDIT"
-                    ? "PENDING"
-                    : "PAID"),
-            commissionStatus: "PENDING_CALCULATION",
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Commission created successfully",
-            commission,
-        });
-    } catch (error) {
-        console.error("Create commission error:", error);
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to create commission",
-            error: error.message,
-        });
+    if (!user || !userType || !branch || !territory || !schemeSource) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "User, User Type, Branch, Territory and Scheme / Source are required",
+      });
     }
+
+    if (
+      salesAmount === undefined ||
+      salesAmount === null ||
+      salesAmount === ""
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Sales Amount is required",
+      });
+    }
+
+    // -------------------------------------------------
+    // NUMBER VALUES
+    // -------------------------------------------------
+
+    const salesAmountValue = Number(salesAmount);
+    const rewardPointsValue = Number(rewardPoints || 0);
+    const commissionPercentageValue = Number(
+      commissionPercentage || 0
+    );
+    const penaltyValue = Number(penalty || 0);
+
+    if (Number.isNaN(salesAmountValue) || salesAmountValue < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Sales Amount must be a valid positive number",
+      });
+    }
+
+    if (
+      Number.isNaN(rewardPointsValue) ||
+      rewardPointsValue < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Reward Points must be a valid number",
+      });
+    }
+
+    if (
+      Number.isNaN(commissionPercentageValue) ||
+      commissionPercentageValue < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Commission % must be a valid number",
+      });
+    }
+
+    if (Number.isNaN(penaltyValue) || penaltyValue < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Penalty must be a valid number",
+      });
+    }
+
+    // -------------------------------------------------
+    // COMMISSION CALCULATION
+    // -------------------------------------------------
+
+    const calculatedCashReward =
+      salesAmountValue *
+      (commissionPercentageValue / 100);
+
+    const finalCashReward =
+      cashReward !== undefined &&
+      cashReward !== null &&
+      cashReward !== ""
+        ? Number(cashReward)
+        : calculatedCashReward;
+
+    if (
+      Number.isNaN(finalCashReward) ||
+      finalCashReward < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Cash Reward must be a valid number",
+      });
+    }
+
+    // -------------------------------------------------
+    // NET PAYABLE
+    // -------------------------------------------------
+
+    const calculatedNetPayable =
+      finalCashReward - penaltyValue;
+
+    const finalNetPayable =
+      netPayable !== undefined &&
+      netPayable !== null &&
+      netPayable !== ""
+        ? Number(netPayable)
+        : Math.max(calculatedNetPayable, 0);
+
+    if (
+      Number.isNaN(finalNetPayable) ||
+      finalNetPayable < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Net Payable must be a valid number",
+      });
+    }
+
+    // -------------------------------------------------
+    // CREATE
+    // -------------------------------------------------
+
+    const commission = await Commission.create({
+      user: user.trim(),
+      userType: userType.trim(),
+      branch: branch.trim(),
+      territory: territory.trim(),
+      schemeSource: schemeSource.trim(),
+
+      salesAmount: salesAmountValue,
+
+      rewardPoints: rewardPointsValue,
+
+      cashReward: finalCashReward,
+
+      commissionPercentage: commissionPercentageValue,
+
+      penalty: penaltyValue,
+
+      netPayable: finalNetPayable,
+
+      status: status || "PENDING_CALCULATION",
+
+      paymentDate: paymentDate || null,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Commission created successfully",
+      commission,
+    });
+  } catch (error) {
+    console.error("Create commission error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create commission",
+      error: error.message,
+    });
+  }
 };
 
-
-// =========================================================
+// =====================================================
 // GET ALL COMMISSIONS
-// =========================================================
+// =====================================================
+
 exports.getCommissions = async (req, res) => {
-    try {
-        const commissions = await Commission.find().sort({
-            createdAt: -1,
-        });
+  try {
+    const commissions = await Commission.find()
+      .sort({ createdAt: -1 });
 
-        res.status(200).json({
-            success: true,
-            count: commissions.length,
-            commissions,
-        });
-    } catch (error) {
-        console.error("Get commissions error:", error);
+    return res.status(200).json({
+      success: true,
+      count: commissions.length,
+      commissions,
+    });
+  } catch (error) {
+    console.error("Get commissions error:", error);
 
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch commissions",
-            error: error.message,
-        });
-    }
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch commissions",
+      error: error.message,
+    });
+  }
 };
 
+// =====================================================
+// GET COMMISSION BY ID
+// =====================================================
 
-// =========================================================
-// GET SINGLE COMMISSION
-// =========================================================
 exports.getCommissionById = async (req, res) => {
-    try {
-        const commission = await Commission.findById(
-            req.params.id
-        );
+  try {
+    const commission = await Commission.findById(
+      req.params.id
+    );
 
-        if (!commission) {
-            return res.status(404).json({
-                success: false,
-                message: "Commission not found",
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            commission,
-        });
-    } catch (error) {
-        console.error("Get commission error:", error);
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch commission",
-            error: error.message,
-        });
+    if (!commission) {
+      return res.status(404).json({
+        success: false,
+        message: "Commission not found",
+      });
     }
+
+    return res.status(200).json({
+      success: true,
+      commission,
+    });
+  } catch (error) {
+    console.error(
+      "Get commission by ID error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch commission",
+      error: error.message,
+    });
+  }
 };
 
+// =====================================================
+// UPDATE COMMISSION
+// =====================================================
 
-// =========================================================
-// UPDATE / RECALCULATE COMMISSION
-// =========================================================
 exports.updateCommission = async (req, res) => {
-    try {
-        const {
-            invoiceNumber,
-            customer,
-            store,
-            territory,
-            salesExecutive,
-            saleDate,
-            invoiceValue,
-            saleType,
-            paymentDate,
-            paymentStatus,
-            commissionStatus,
-            rewardPoints,
-        } = req.body;
+  try {
+    const commission =
+      await Commission.findById(req.params.id);
 
-        // Find existing commission
-        const existingCommission =
-            await Commission.findById(req.params.id);
-
-        if (!existingCommission) {
-            return res.status(404).json({
-                success: false,
-                message: "Commission not found",
-            });
-        }
-
-        // Existing / Updated Values
-        const finalSaleDate =
-            saleDate || existingCommission.saleDate;
-
-        const finalInvoiceValue =
-            invoiceValue !== undefined
-                ? Number(invoiceValue)
-                : Number(existingCommission.invoiceValue);
-
-        const finalSaleType =
-            saleType || existingCommission.saleType;
-
-        const finalPaymentDate =
-            paymentDate !== undefined
-                ? paymentDate
-                : existingCommission.paymentDate;
-
-        // =====================================================
-        // RECOVERY DAYS
-        // =====================================================
-        let recoveryDays = 0;
-
-        if (
-            finalSaleType === "CREDIT" &&
-            finalPaymentDate
-        ) {
-            const start = new Date(finalSaleDate);
-            const payment = new Date(finalPaymentDate);
-
-            recoveryDays = Math.max(
-                0,
-                Math.ceil(
-                    (payment - start) /
-                        (1000 * 60 * 60 * 24)
-                )
-            );
-        }
-
-        // =====================================================
-        // COMMISSION CALCULATION
-        // =====================================================
-        let commissionPercentage = 0;
-        let commissionAmount = 0;
-        let penaltyAmount = 0;
-
-        // Cash Sale → 1%
-        if (finalSaleType === "CASH") {
-            commissionPercentage = 1;
-        }
-
-        // Credit Sale
-        if (finalSaleType === "CREDIT") {
-            if (recoveryDays <= 60) {
-                commissionPercentage = 1;
-            } else if (recoveryDays <= 90) {
-                commissionPercentage = 0.5;
-            } else {
-                commissionPercentage = 0;
-                penaltyAmount =
-                    finalInvoiceValue * 0.01;
-            }
-        }
-
-        // Commission Amount
-        commissionAmount =
-            finalInvoiceValue *
-            (commissionPercentage / 100);
-
-        // Net Commission
-        const netCommission = Math.max(
-            0,
-            commissionAmount - penaltyAmount
-        );
-
-        // =====================================================
-        // UPDATE DATA
-        // =====================================================
-        const updateData = {
-            invoiceNumber:
-                invoiceNumber !== undefined
-                    ? invoiceNumber
-                    : existingCommission.invoiceNumber,
-
-            customer:
-                customer !== undefined
-                    ? customer
-                    : existingCommission.customer,
-
-            store:
-                store !== undefined
-                    ? store
-                    : existingCommission.store,
-
-            territory:
-                territory !== undefined
-                    ? territory
-                    : existingCommission.territory,
-
-            salesExecutive:
-                salesExecutive !== undefined
-                    ? salesExecutive
-                    : existingCommission.salesExecutive,
-
-            saleDate: finalSaleDate,
-
-            invoiceValue: finalInvoiceValue,
-
-            saleType: finalSaleType,
-
-            paymentDate: finalPaymentDate || null,
-
-            recoveryDays,
-
-            rewardPoints:
-                rewardPoints !== undefined
-                    ? Number(rewardPoints)
-                    : existingCommission.rewardPoints,
-
-            commissionPercentage,
-
-            commissionAmount,
-
-            penaltyAmount,
-
-            netCommission,
-
-            paymentStatus:
-                paymentStatus !== undefined
-                    ? paymentStatus
-                    : existingCommission.paymentStatus,
-
-            commissionStatus:
-                commissionStatus !== undefined
-                    ? commissionStatus
-                    : existingCommission.commissionStatus,
-        };
-
-        // Update Commission
-        const commission =
-            await Commission.findByIdAndUpdate(
-                req.params.id,
-                updateData,
-                {
-                    returnDocument: "after",
-                    runValidators: true,
-                }
-            );
-
-        res.status(200).json({
-            success: true,
-            message: "Commission updated successfully",
-            commission,
-        });
-    } catch (error) {
-        console.error(
-            "Update commission error:",
-            error
-        );
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to update commission",
-            error: error.message,
-        });
+    if (!commission) {
+      return res.status(404).json({
+        success: false,
+        message: "Commission not found",
+      });
     }
+
+    const {
+      user,
+      userType,
+      branch,
+      territory,
+      schemeSource,
+      salesAmount,
+      rewardPoints,
+      cashReward,
+      commissionPercentage,
+      penalty,
+      netPayable,
+      status,
+      paymentDate,
+    } = req.body;
+
+    // -------------------------------------------------
+    // UPDATE BASIC FIELDS
+    // -------------------------------------------------
+
+    if (user !== undefined) {
+      commission.user = user.trim();
+    }
+
+    if (userType !== undefined) {
+      commission.userType = userType.trim();
+    }
+
+    if (branch !== undefined) {
+      commission.branch = branch.trim();
+    }
+
+    if (territory !== undefined) {
+      commission.territory = territory.trim();
+    }
+
+    if (schemeSource !== undefined) {
+      commission.schemeSource = schemeSource.trim();
+    }
+
+    if (salesAmount !== undefined) {
+      const value = Number(salesAmount);
+
+      if (Number.isNaN(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Sales Amount must be a valid number",
+        });
+      }
+
+      commission.salesAmount = value;
+    }
+
+    if (rewardPoints !== undefined) {
+      const value = Number(rewardPoints);
+
+      if (Number.isNaN(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Reward Points must be a valid number",
+        });
+      }
+
+      commission.rewardPoints = value;
+    }
+
+    if (commissionPercentage !== undefined) {
+      const value = Number(commissionPercentage);
+
+      if (Number.isNaN(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Commission % must be a valid number",
+        });
+      }
+
+      commission.commissionPercentage = value;
+    }
+
+    if (penalty !== undefined) {
+      const value = Number(penalty);
+
+      if (Number.isNaN(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Penalty must be a valid number",
+        });
+      }
+
+      commission.penalty = value;
+    }
+
+    if (cashReward !== undefined) {
+      const value = Number(cashReward);
+
+      if (Number.isNaN(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Cash Reward must be a valid number",
+        });
+      }
+
+      commission.cashReward = value;
+    }
+
+    if (netPayable !== undefined) {
+      const value = Number(netPayable);
+
+      if (Number.isNaN(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Net Payable must be a valid number",
+        });
+      }
+
+      commission.netPayable = value;
+    }
+
+    if (status !== undefined) {
+      commission.status = status;
+    }
+
+    if (paymentDate !== undefined) {
+      commission.paymentDate =
+        paymentDate || null;
+    }
+
+    // -------------------------------------------------
+    // SAVE
+    // -------------------------------------------------
+
+    await commission.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Commission updated successfully",
+      commission,
+    });
+  } catch (error) {
+    console.error(
+      "Update commission error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update commission",
+      error: error.message,
+    });
+  }
 };
 
-
-// =========================================================
+// =====================================================
 // UPDATE COMMISSION STATUS
-// =========================================================
-exports.updateCommissionStatus = async (req, res) => {
-    try {
-        const { commissionStatus } = req.body;
+// =====================================================
 
-        const commission =
-            await Commission.findByIdAndUpdate(
-                req.params.id,
-                { commissionStatus },
-                {
-                    returnDocument: "after",
-                    runValidators: true,
-                }
-            );
+exports.updateCommissionStatus = async (
+  req,
+  res
+) => {
+  try {
+    const { status } = req.body;
 
-        if (!commission) {
-            return res.status(404).json({
-                success: false,
-                message: "Commission not found",
-            });
-        }
+    const allowedStatuses = [
+      "PENDING_CALCULATION",
+      "UNDER_VERIFICATION",
+      "APPROVED",
+      "RELEASED",
+      "ON_HOLD",
+      "CANCELLED",
+    ];
 
-        res.status(200).json({
-            success: true,
-            message:
-                "Commission status updated successfully",
-            commission,
-        });
-    } catch (error) {
-        console.error(
-            "Update commission status error:",
-            error
-        );
-
-        res.status(500).json({
-            success: false,
-            message:
-                "Failed to update commission status",
-            error: error.message,
-        });
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required",
+      });
     }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid commission status",
+      });
+    }
+
+    const commission =
+      await Commission.findByIdAndUpdate(
+        req.params.id,
+        { status },
+        {
+          returnDocument: "after",
+          runValidators: true,
+        }
+      );
+
+    if (!commission) {
+      return res.status(404).json({
+        success: false,
+        message: "Commission not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Commission status updated successfully",
+      commission,
+    });
+  } catch (error) {
+    console.error(
+      "Update commission status error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update commission status",
+      error: error.message,
+    });
+  }
 };
 
-
-// =========================================================
+// =====================================================
 // DELETE COMMISSION
-// =========================================================
+// =====================================================
+
 exports.deleteCommission = async (req, res) => {
-    try {
-        const commission =
-            await Commission.findByIdAndDelete(
-                req.params.id
-            );
+  try {
+    const commission =
+      await Commission.findById(req.params.id);
 
-        if (!commission) {
-            return res.status(404).json({
-                success: false,
-                message: "Commission not found",
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "Commission deleted successfully",
-        });
-    } catch (error) {
-        console.error(
-            "Delete commission error:",
-            error
-        );
-
-        res.status(500).json({
-            success: false,
-            message:
-                "Failed to delete commission",
-            error: error.message,
-        });
+    if (!commission) {
+      return res.status(404).json({
+        success: false,
+        message: "Commission not found",
+      });
     }
+
+    await Commission.findByIdAndDelete(
+      req.params.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Commission deleted successfully",
+    });
+  } catch (error) {
+    console.error(
+      "Delete commission error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete commission",
+      error: error.message,
+    });
+  }
 };
