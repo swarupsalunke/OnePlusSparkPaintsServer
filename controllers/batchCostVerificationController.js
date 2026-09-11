@@ -134,10 +134,9 @@ const getCostVerification = async (req, res) => {
         );
 
     if (!verification) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Batch cost verification not found",
+      return res.status(200).json({
+        success: true,
+        verification: null,
       });
     }
 
