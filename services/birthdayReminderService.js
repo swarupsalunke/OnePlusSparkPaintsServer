@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const Birthday = require("../models/birthdayModel");
+const Birthday = require("../models/superadmin/birthdayModel");
 
 // =====================================================
 // BIRTHDAY REMINDER CHECK
