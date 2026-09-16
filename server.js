@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv"); 
 
 const connectDB = require("./config/db");
+// superadmin
 const authRoutes = require("./routes/superadmin/authRoutes");
 const userRoutes = require("./routes/superadmin/userRoutes");
 const dashboardRoutes = require("./routes/superadmin/dashboardRoutes");
@@ -41,6 +42,14 @@ const approvalRoutes = require("./routes/superadmin/approvalRoutes");
 const contactRoutes = require("./routes/superadmin/contactRoutes");
 const socialMediaRoutes = require("./routes/superadmin/socialMediaRoutes");
 
+// painter
+const painterDashboardRoutes = require("./routes/painter/dashboardRoutes");
+const painterScanRoutes = require("./routes/painter/scanRoutes");
+const painterEnquiryRoutes = require("./routes/painter/enquiryRoutes");
+const painterProductRoutes = require("./routes/painter/productRoutes");
+const painterRewardRoutes = require("./routes/painter/rewardRoutes");
+const painterNotificationRoutes = require("./routes/painter/notificationRoutes");
+
 
 const { startBirthdayReminderService,
 } = require("./services/birthdayReminderService");
@@ -63,6 +72,7 @@ app.use(express.json());
 
 connectDB();
 
+// superadmin
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
@@ -101,8 +111,13 @@ app.use("/api/approvals", approvalRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/social-media", socialMediaRoutes);
 
-
-
+// painter
+app.use("/api/painter", painterDashboardRoutes);
+app.use("/api/painter", painterScanRoutes);
+app.use("/api/painter", painterEnquiryRoutes);
+app.use("/api/painter/products", painterProductRoutes);
+app.use("/api/painter/rewards", painterRewardRoutes);
+app.use("/api/painter/notifications", painterNotificationRoutes);
 
 
 app.get("/", (req, res) => {
