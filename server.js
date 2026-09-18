@@ -49,6 +49,10 @@ const painterEnquiryRoutes = require("./routes/painter/enquiryRoutes");
 const painterProductRoutes = require("./routes/painter/productRoutes");
 const painterRewardRoutes = require("./routes/painter/rewardRoutes");
 const painterNotificationRoutes = require("./routes/painter/notificationRoutes");
+const painterBarcodeScanRoutes = require("./routes/painter/barcodeScanRoutes");
+const painterManualCodeRoutes = require("./routes/painter/manualCodeRoutes");
+const painterScanHistoryRoutes = require("./routes/painter/scanHistoryRoutes");
+const painterProductVerificationRoutes = require("./routes/painter/productVerificationRoutes");
 
 
 const { startBirthdayReminderService,
@@ -58,7 +62,6 @@ const path = require("path");
 dotenv.config();
 const app = express();
 
-app.use(express.json());
 
 app.use(
   "/uploads",
@@ -118,6 +121,10 @@ app.use("/api/painter", painterEnquiryRoutes);
 app.use("/api/painter/products", painterProductRoutes);
 app.use("/api/painter/rewards", painterRewardRoutes);
 app.use("/api/painter/notifications", painterNotificationRoutes);
+app.use("/api/painter/barcode-scan", painterBarcodeScanRoutes);
+app.use("/api/painter/manual-code", painterManualCodeRoutes);
+app.use("/api/painter/scan-history", painterScanHistoryRoutes);
+app.use("/api/painter/product-verification", painterProductVerificationRoutes);
 
 
 app.get("/", (req, res) => {
