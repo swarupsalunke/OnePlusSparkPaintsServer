@@ -53,6 +53,8 @@ const painterBarcodeScanRoutes = require("./routes/painter/barcodeScanRoutes");
 const painterManualCodeRoutes = require("./routes/painter/manualCodeRoutes");
 const painterScanHistoryRoutes = require("./routes/painter/scanHistoryRoutes");
 const painterProductVerificationRoutes = require("./routes/painter/productVerificationRoutes");
+const painterRewardHistoryRoutes = require("./routes/painter/rewardHistoryRoutes");
+const painterWalletLedgerRoutes = require("./routes/painter/walletLedgerRoutes");
 
 
 const { startBirthdayReminderService,
@@ -125,6 +127,8 @@ app.use("/api/painter/barcode-scan", painterBarcodeScanRoutes);
 app.use("/api/painter/manual-code", painterManualCodeRoutes);
 app.use("/api/painter/scan-history", painterScanHistoryRoutes);
 app.use("/api/painter/product-verification", painterProductVerificationRoutes);
+app.use("/api/painter/reward-history", painterRewardHistoryRoutes);
+app.use("/api/painter/wallet-ledger", painterWalletLedgerRoutes);
 
 
 app.get("/", (req, res) => {
