@@ -9,7 +9,10 @@ const User = require("../../models/superadmin/User");
 
 const getPainterDashboard = async (req, res) => {
   try {
-    const painterId = req.user?._id;
+    const painterId =
+      req.user?._id ||
+      req.user?.id ||
+      req.user?.userId;
 
     if (!painterId) {
       return res.status(401).json({
@@ -51,9 +54,14 @@ const getPainterDashboard = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(10);
 
-    const totalRewardPoints = wallet?.currentPoints || 0;
-    const totalCashRewards = wallet?.currentCashBalance || 0;
-    const pendingRewards = wallet?.pendingRewards || 0;
+    const totalRewardPoints =
+      wallet?.currentPoints || 0;
+
+    const totalCashRewards =
+      wallet?.currentCashBalance || 0;
+
+    const pendingRewards =
+      wallet?.pendingRewards || 0;
 
     // ==========================================
     // LATEST REWARD
@@ -69,49 +77,62 @@ const getPainterDashboard = async (req, res) => {
 
     const now = new Date();
 
-    const monthlyTransactions = await RewardTransaction.find({
-      user: painterId,
-      createdAt: {
-        $gte: new Date(
-          now.getFullYear(),
-          now.getMonth() - 5,
-          1
-        ),
-      },
-    }).sort({ createdAt: 1 });
+    const monthlyTransactions =
+      await RewardTransaction.find({
+        user: painterId,
+        createdAt: {
+          $gte: new Date(
+            now.getFullYear(),
+            now.getMonth() - 5,
+            1
+          ),
+        },
+      }).sort({ createdAt: 1 });
 
-    const monthlyRewardSummary = monthlyTransactions.reduce(
-      (summary, transaction) => {
-        const date = new Date(transaction.createdAt);
-
-        const month = date.toLocaleString("en-US", {
-          month: "short",
-        });
-
-        if (!summary[month]) {
-          summary[month] = {
-            month,
-            points: 0,
-            cash: 0,
-          };
-        }
-
-        if (transaction.rewardType === "POINTS") {
-          summary[month].points += Number(
-            transaction.points || 0
+    const monthlyRewardSummary =
+      monthlyTransactions.reduce(
+        (summary, transaction) => {
+          const date = new Date(
+            transaction.createdAt
           );
-        }
 
-        if (transaction.rewardType === "CASH") {
-          summary[month].cash += Number(
-            transaction.cashAmount || 0
+          const month = date.toLocaleString(
+            "en-US",
+            {
+              month: "short",
+            }
           );
-        }
 
-        return summary;
-      },
-      {}
-    );
+          if (!summary[month]) {
+            summary[month] = {
+              month,
+              points: 0,
+              cash: 0,
+            };
+          }
+
+          if (
+            transaction.rewardType ===
+            "POINTS"
+          ) {
+            summary[month].points += Number(
+              transaction.points || 0
+            );
+          }
+
+          if (
+            transaction.rewardType ===
+            "CASH"
+          ) {
+            summary[month].cash += Number(
+              transaction.cashAmount || 0
+            );
+          }
+
+          return summary;
+        },
+        {}
+      );
 
     // ==========================================
     // RESPONSE
@@ -127,7 +148,8 @@ const getPainterDashboard = async (req, res) => {
         email: painter.email,
         mobile: painter.mobile,
         role: painter.role,
-        profilePicture: painter.profilePicture,
+        profilePicture:
+          painter.profilePicture,
       },
 
       summary: {
@@ -138,9 +160,10 @@ const getPainterDashboard = async (req, res) => {
 
       latestReward,
 
-      monthlyRewardSummary: Object.values(
-        monthlyRewardSummary
-      ),
+      monthlyRewardSummary:
+        Object.values(
+          monthlyRewardSummary
+        ),
 
       recentRewards: transactions,
     });
@@ -152,7 +175,8 @@ const getPainterDashboard = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch painter dashboard",
+      message:
+        "Failed to fetch painter dashboard",
       error: error.message,
     });
   }
