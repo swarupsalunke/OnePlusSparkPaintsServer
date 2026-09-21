@@ -55,6 +55,12 @@ const painterScanHistoryRoutes = require("./routes/painter/scanHistoryRoutes");
 const painterProductVerificationRoutes = require("./routes/painter/productVerificationRoutes");
 const painterRewardHistoryRoutes = require("./routes/painter/rewardHistoryRoutes");
 const painterWalletLedgerRoutes = require("./routes/painter/walletLedgerRoutes");
+const painterRewardDashboardRoutes = require("./routes/painter/painterRewardDashboardRoutes");
+const painterRewardWalletRoutes = require("./routes/painter/painterRewardWalletRoutes");
+const painterRewardLedgerRoutes = require("./routes/painter/painterRewardLedgerRoutes");
+const painterRewardTransactionHistoryRoutes = require("./routes/painter/painterRewardTransactionHistoryRoutes");
+const painterRewardAnalyticsRoutes = require("./routes/painter/painterRewardAnalyticsRoutes");
+const painterSchemePerformanceRoutes = require("./routes/painter/painterSchemePerformanceRoutes");
 
 
 const { startBirthdayReminderService,
@@ -129,6 +135,12 @@ app.use("/api/painter/scan-history", painterScanHistoryRoutes);
 app.use("/api/painter/product-verification", painterProductVerificationRoutes);
 app.use("/api/painter/reward-history", painterRewardHistoryRoutes);
 app.use("/api/painter/wallet-ledger", painterWalletLedgerRoutes);
+app.use("/api/painter/reward-dashboard", painterRewardDashboardRoutes);
+app.use("/api/painter/reward-wallet", painterRewardWalletRoutes);
+app.use("/api/painter/reward-ledger", painterRewardLedgerRoutes);
+app.use("/api/painter/reward-transaction-history", painterRewardTransactionHistoryRoutes);
+app.use("/api/painter/reward-analytics", painterRewardAnalyticsRoutes);
+app.use("/api/painter/scheme-performance", painterSchemePerformanceRoutes);
 
 
 app.get("/", (req, res) => {
