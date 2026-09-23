@@ -73,6 +73,7 @@ const painterSchemesRoutes = require("./routes/painter/painterSchemesRoutes");
 const painterOffersRoutes = require("./routes/painter/painterOffersRoutes");
 const painterNotificationsRoutes = require("./routes/painter/painterNotificationRoutes");
 const painterReferralRoutes = require("./routes/painter/painterReferralRoutes");
+const painterDocumentRoutes = require("./routes/painter/painterDocumentRoutes");
 
 
 const { startBirthdayReminderService,
@@ -165,6 +166,7 @@ app.use("/api/painter/schemes", painterSchemesRoutes);
 app.use("/api/painter/offers", painterOffersRoutes);
 app.use("/api/painter/notifications", painterNotificationsRoutes);
 app.use("/api/painter/referrals", painterReferralRoutes);
+app.use("/api/painter/documents", painterDocumentRoutes);
 
 
 app.get("/", (req, res) => {
