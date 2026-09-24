@@ -74,6 +74,12 @@ const painterOffersRoutes = require("./routes/painter/painterOffersRoutes");
 const painterNotificationsRoutes = require("./routes/painter/painterNotificationRoutes");
 const painterReferralRoutes = require("./routes/painter/painterReferralRoutes");
 const painterDocumentRoutes = require("./routes/painter/painterDocumentRoutes");
+const painterShopEnquiryRoutes = require("./routes/painter/painterShopEnquiryRoutes");
+const painterDealerRoutes = require("./routes/painter/painterDealerRoutes");
+const painterVoiceVideoRoutes = require("./routes/painter/painterVoiceVideoRoutes");
+const painterVoiceImageRoutes = require("./routes/painter/painterVoiceImageRoutes");
+const painterFeedbackRoutes = require("./routes/painter/painterFeedbackRoutes");
+const painterVoiceHistoryRoutes = require("./routes/painter/painterVoiceHistoryRoutes");
 
 
 const { startBirthdayReminderService,
@@ -158,7 +164,7 @@ app.use("/api/painter/redemption-dashboard", painterRedemptionDashboardRoutes);
 app.use("/api/painter/redeem-rewards", painterRedeemRewardsRoutes);
 app.use("/api/painter/redemption-history", painterRedemptionHistoryRoutes);
 app.use("/api/painter/redemption-status", painterRedemptionStatusRoutes);
-app.use("/api/painter/loyalty-dashboard", painterLoyaltyDashboardRoutes);
+app.use("/api/painter/loya  lty-dashboard", painterLoyaltyDashboardRoutes);
 app.use("/api/painter/tier-progress", painterTierProgressRoutes);
 app.use("/api/painter/tier-benefits", painterTierBenefitsRoutes);
 app.use("/api/painter/schemes", painterSchemeRoutes);
@@ -167,6 +173,12 @@ app.use("/api/painter/offers", painterOffersRoutes);
 app.use("/api/painter/notifications", painterNotificationsRoutes);
 app.use("/api/painter/referrals", painterReferralRoutes);
 app.use("/api/painter/documents", painterDocumentRoutes);
+app.use("/api/painter", painterShopEnquiryRoutes);
+app.use("/api/painter", painterDealerRoutes);
+app.use("/api/painter", painterVoiceVideoRoutes);
+app.use("/api/painter", painterVoiceImageRoutes);
+app.use("/api/painter", painterFeedbackRoutes);
+app.use("/api/painter", painterVoiceHistoryRoutes);
 
 
 app.get("/", (req, res) => {
