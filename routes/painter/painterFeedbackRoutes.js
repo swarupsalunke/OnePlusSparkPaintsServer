@@ -18,10 +18,10 @@ router.post(
     createPainterFeedback
 );
 router.get(
-    "/complaints",
-    authMiddleware,
-    roleMiddleware("PAINTER"),
-    getPainterComplaints
+  "/voice-of-painter/complaints",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  getPainterComplaints
 );
 
 module.exports = router;
