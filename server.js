@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv"); 
+const dotenv = require("dotenv");
 
 const connectDB = require("./config/db");
 // superadmin
@@ -82,9 +82,17 @@ const painterVoiceImageRoutes = require("./routes/painter/painterVoiceImageRoute
 const painterFeedbackRoutes = require("./routes/painter/painterFeedbackRoutes");
 const painterVoiceHistoryRoutes = require("./routes/painter/painterVoiceHistoryRoutes");
 const painterLeadRoutes = require("./routes/painter/painterLeadRoutes");
-const painterFollowUpRoutes = require("./routes/painter/painterFollowUpRoutes");  
+const painterFollowUpRoutes = require("./routes/painter/painterFollowUpRoutes");
 const painterSupportRoutes = require("./routes/painter/painterSupportRoutes");
 const complaintRoutes = require("./routes/painter/complaintRoutes");
+const painterProfileRoutes = require("./routes/painter/painterProfileRoutes");
+const painterEditProfileRoutes = require("./routes/painter/painterEditProfileRoutes");
+const painterBankDetailsRoutes = require("./routes/painter/painterBankDetailsRoutes");
+const painterAddressDetailsRoutes = require("./routes/painter/painterAddressDetailsRoutes");
+const painterNotificationSettingsRoutes = require("./routes/painter/painterNotificationSettingsRoutes");
+const painterChangePasswordRoutes = require("./routes/painter/painterChangePasswordRoutes");
+const painterShareProfileRoutes = require("./routes/painter/painterShareProfileRoutes");
+const painterProfilePreviewRoutes = require("./routes/painter/painterProfilePreviewRoutes");
 
 
 const { startBirthdayReminderService,
@@ -189,6 +197,14 @@ app.use("/api/painter/customers", painterCustomerRoutes);
 app.use("/api/painter/leads", painterLeadRoutes);
 app.use("/api/painter/follow-ups", painterFollowUpRoutes);
 app.use("/api/painter/support", painterSupportRoutes);
+app.use("/api/painter/profile", painterProfileRoutes);
+app.use("/api/painter/profile/edit", painterEditProfileRoutes);
+app.use("/api/painter/bank-details", painterBankDetailsRoutes);
+app.use("/api/painter/address-details", painterAddressDetailsRoutes);
+app.use("/api/painter/notification-settings", painterNotificationSettingsRoutes);
+app.use("/api/painter/change-password", painterChangePasswordRoutes);
+app.use("/api/painter/profile/share", painterShareProfileRoutes);
+app.use("/api/painter/profile/preview", painterProfilePreviewRoutes);
 
 
 
