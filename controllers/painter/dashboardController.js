@@ -1,6 +1,8 @@
 const RewardWallet = require("../../models/superadmin/RewardWallet");
 const RewardTransaction = require("../../models/superadmin/RewardTransaction");
 const User = require("../../models/superadmin/User");
+const Scheme = require("../../models/superadmin/schemeModel");
+const PainterScan = require("../../models/painter/PainterScan");
 
 // ==========================================
 // GET PAINTER DASHBOARD
@@ -44,16 +46,6 @@ const getPainterDashboard = async (req, res) => {
       user: painterId,
     });
 
-    // ==========================================
-    // REWARD TRANSACTIONS
-    // ==========================================
-
-    const transactions = await RewardTransaction.find({
-      user: painterId,
-    })
-      .sort({ createdAt: -1 })
-      .limit(10);
-
     const totalRewardPoints =
       wallet?.currentPoints || 0;
 
@@ -62,6 +54,27 @@ const getPainterDashboard = async (req, res) => {
 
     const pendingRewards =
       wallet?.pendingRewards || 0;
+
+    // ==========================================
+    // PRODUCT SCANS
+    // ==========================================
+
+    const productScans = await PainterScan.countDocuments({
+      painter: painterId,
+      scanStatus: "VALID",
+    });
+
+    // ==========================================
+    // RECENT REWARD TRANSACTIONS
+    // ==========================================
+
+    const transactions =
+      await RewardTransaction.find({
+        user: painterId,
+      })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
 
     // ==========================================
     // LATEST REWARD
@@ -73,66 +86,121 @@ const getPainterDashboard = async (req, res) => {
 
     // ==========================================
     // MONTHLY REWARD SUMMARY
+    // Last 6 Months
     // ==========================================
 
     const now = new Date();
 
+    const monthlyStartDate = new Date(
+      now.getFullYear(),
+      now.getMonth() - 5,
+      1
+    );
+
+    const monthlyEndDate = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      1
+    );
+
     const monthlyTransactions =
       await RewardTransaction.find({
         user: painterId,
+        userType: "PAINTER",
+        rewardType: "POINTS",
+        transactionType: "ADD",
+        status: {
+          $nin: ["REJECTED", "REVERSED"],
+        },
         createdAt: {
-          $gte: new Date(
-            now.getFullYear(),
-            now.getMonth() - 5,
-            1
-          ),
+          $gte: monthlyStartDate,
+          $lt: monthlyEndDate,
         },
-      }).sort({ createdAt: 1 });
+      })
+        .sort({ createdAt: 1 })
+        .lean();
 
-    const monthlyRewardSummary =
-      monthlyTransactions.reduce(
-        (summary, transaction) => {
-          const date = new Date(
-            transaction.createdAt
-          );
+    // ==========================================
+    // CREATE LAST 6 MONTHS
+    // ==========================================
 
-          const month = date.toLocaleString(
-            "en-US",
-            {
-              month: "short",
-            }
-          );
+    const monthlyRewardSummary = [];
 
-          if (!summary[month]) {
-            summary[month] = {
-              month,
-              points: 0,
-              cash: 0,
-            };
-          }
-
-          if (
-            transaction.rewardType ===
-            "POINTS"
-          ) {
-            summary[month].points += Number(
-              transaction.points || 0
-            );
-          }
-
-          if (
-            transaction.rewardType ===
-            "CASH"
-          ) {
-            summary[month].cash += Number(
-              transaction.cashAmount || 0
-            );
-          }
-
-          return summary;
-        },
-        {}
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(
+        now.getFullYear(),
+        now.getMonth() - i,
+        1
       );
+
+      const year = monthDate.getFullYear();
+      const monthIndex = monthDate.getMonth();
+
+      const monthName =
+        monthDate.toLocaleString("en-US", {
+          month: "short",
+        });
+
+      const monthPoints =
+        monthlyTransactions
+          .filter((transaction) => {
+            const transactionDate = new Date(
+              transaction.createdAt
+            );
+
+            return (
+              transactionDate.getFullYear() === year &&
+              transactionDate.getMonth() ===
+                monthIndex
+            );
+          })
+          .reduce(
+            (total, transaction) =>
+              total +
+              Number(transaction.points || 0),
+            0
+          );
+
+      monthlyRewardSummary.push({
+        month: monthName,
+        year,
+        points: monthPoints,
+        current:
+          year === now.getFullYear() &&
+          monthIndex === now.getMonth(),
+      });
+    }
+
+    // ==========================================
+    // CALCULATE CHART PERCENTAGE
+    // ==========================================
+
+    const maxMonthlyPoints = Math.max(
+      ...monthlyRewardSummary.map(
+        (item) => item.points
+      ),
+      1
+    );
+
+    monthlyRewardSummary.forEach((item) => {
+      item.percentage = Math.round(
+        (item.points / maxMonthlyPoints) * 100
+      );
+    });
+
+    // ==========================================
+    // ACTIVE SCHEMES
+    // ==========================================
+
+    const activeSchemes =
+      await Scheme.find({
+        applicableTo: {
+          $in: ["PAINTERS", "BOTH"],
+        },
+        status: "ACTIVE",
+      })
+        .sort({ createdAt: -1 })
+        .lean();
 
     // ==========================================
     // RESPONSE
@@ -156,16 +224,16 @@ const getPainterDashboard = async (req, res) => {
         totalRewardPoints,
         totalCashRewards,
         pendingRewards,
+        productScans,
       },
 
       latestReward,
 
-      monthlyRewardSummary:
-        Object.values(
-          monthlyRewardSummary
-        ),
+      monthlyRewardSummary,
 
       recentRewards: transactions,
+
+      activeSchemes,
     });
   } catch (error) {
     console.error(

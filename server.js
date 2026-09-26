@@ -93,6 +93,7 @@ const painterNotificationSettingsRoutes = require("./routes/painter/painterNotif
 const painterChangePasswordRoutes = require("./routes/painter/painterChangePasswordRoutes");
 const painterShareProfileRoutes = require("./routes/painter/painterShareProfileRoutes");
 const painterProfilePreviewRoutes = require("./routes/painter/painterProfilePreviewRoutes");
+const painterAnalyticsRoutes = require("./routes/painter/painterAnalyticsRoutes");
 
 
 const { startBirthdayReminderService,
@@ -205,8 +206,8 @@ app.use("/api/painter/notification-settings", painterNotificationSettingsRoutes)
 app.use("/api/painter/change-password", painterChangePasswordRoutes);
 app.use("/api/painter/profile/share", painterShareProfileRoutes);
 app.use("/api/painter/profile/preview", painterProfilePreviewRoutes);
-
-
+app.use("/api/painter/analytics", painterAnalyticsRoutes);
+app.use("/api/painter/analytics", painterAnalyticsRoutes);
 
 app.get("/", (req, res) => {
   res.json({
