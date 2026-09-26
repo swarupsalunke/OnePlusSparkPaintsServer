@@ -13,6 +13,7 @@ const {
 
 const authMiddleware = require("../../middleware/authMiddleware");
 const roleMiddleware = require("../../middleware/roleMiddleware");
+const productUpload = require("../../middleware/productUpload");
 
 // ==========================================
 // CREATE PRODUCT
@@ -26,7 +27,8 @@ router.post(
     "DIRECTOR",
     "MANAGER"
   ),
-  createProduct
+  productUpload.single("image"),
+  createProduct,
 );
 
 // ==========================================
@@ -91,7 +93,8 @@ router.put(
     "DIRECTOR",
     "MANAGER"
   ),
-  updateProduct
+  productUpload.single("image"),
+  updateProduct,
 );
 
 // ==========================================

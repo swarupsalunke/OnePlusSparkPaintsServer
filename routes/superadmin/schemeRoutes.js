@@ -17,7 +17,7 @@ const router = express.Router();
 // Upload directory
 const uploadDir = path.join(
   __dirname,
-  "../uploads/schemes"
+  "../../uploads/schemes"
 );
 
 if (!fs.existsSync(uploadDir)) {

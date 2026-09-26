@@ -48,6 +48,11 @@ const createProduct = async (req, res) => {
       });
     }
 
+    // Product image
+    const image = req.file
+      ? `/uploads/products/${req.file.filename}`
+      : "";
+
     // Create product
     const product = await Product.create({
       productName,
@@ -62,6 +67,7 @@ const createProduct = async (req, res) => {
       discountPrice,
       stockQuantity,
       status,
+      image,
     });
 
     res.status(201).json({
@@ -219,10 +225,19 @@ const updateProduct = async (
   try {
     const { id } = req.params;
 
+    const updateData = {
+      ...req.body,
+    };
+
+    // Update image only when a new image is selected
+    if (req.file) {
+      updateData.image = `/uploads/products/${req.file.filename}`;
+    }
+
     const product =
       await Product.findByIdAndUpdate(
         id,
-        req.body,
+        updateData,
         {
           returnDocument: "after",
           runValidators: true,

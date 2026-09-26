@@ -48,6 +48,7 @@ exports.createScheme = async (req, res) => {
       termsAndConditions,
     } = req.body;
 
+    // Required fields validation
     if (
       !schemeName ||
       !description ||
@@ -62,6 +63,7 @@ exports.createScheme = async (req, res) => {
       });
     }
 
+    // Date validation
     if (new Date(endDate) < new Date(startDate)) {
       return res.status(400).json({
         success: false,
@@ -69,33 +71,58 @@ exports.createScheme = async (req, res) => {
       });
     }
 
-    const schemeId = await generateSchemeId();
+    // Generate unique scheme ID
+    let schemeId = await generateSchemeId();
 
+    // Extra safety check for duplicate schemeId
+    let existingScheme = await Scheme.findOne({ schemeId });
+
+    while (existingScheme) {
+      const currentNumber = parseInt(
+        schemeId.split("-").pop(),
+        10
+      );
+
+      const year = new Date().getFullYear();
+
+      const nextNumber = currentNumber + 1;
+
+      schemeId = `SCHM-${year}-${String(nextNumber).padStart(4, "0")}`;
+
+      existingScheme = await Scheme.findOne({ schemeId });
+    }
+
+    // Banner upload
     const banner = req.files?.banner
       ? `/uploads/schemes/${req.files.banner[0].filename}`
       : "";
 
+    // PDF upload
     const pdf = req.files?.pdf
       ? `/uploads/schemes/${req.files.pdf[0].filename}`
       : "";
 
+    // Calculate status
     const status = getSchemeStatus(startDate, endDate);
 
+    // Create scheme
     const scheme = await Scheme.create({
       schemeId,
-      schemeName,
-      description,
+      schemeName: schemeName.trim(),
+      description: description.trim(),
       schemeType,
       applicableTo,
       banner,
       startDate,
       endDate,
       pdf,
-      termsAndConditions,
+      termsAndConditions: termsAndConditions
+        ? termsAndConditions.trim()
+        : "",
       status,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Scheme created successfully",
       scheme,
@@ -103,7 +130,16 @@ exports.createScheme = async (req, res) => {
   } catch (error) {
     console.error("Create scheme error:", error);
 
-    res.status(500).json({
+    // Duplicate key error
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Scheme ID already exists. Please try again.",
+        error: error.message,
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       message: "Failed to create scheme",
       error: error.message,
