@@ -9,7 +9,6 @@ const editPainterProfile = async (req, res) => {
       mobile,
       email,
       serviceableArea,
-      profileImage,
     } = req.body;
 
     if (!name || !mobile) {
@@ -19,20 +18,9 @@ const editPainterProfile = async (req, res) => {
       });
     }
 
-    const profile = await PainterProfile.findOneAndUpdate(
-      { painterId },
-      {
-        name,
-        mobile,
-        email,
-        serviceableArea,
-        profileImage,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const profile = await PainterProfile.findOne({
+      painterId,
+    });
 
     if (!profile) {
       return res.status(404).json({
@@ -41,7 +29,23 @@ const editPainterProfile = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    profile.name = name.trim();
+    profile.mobile = mobile.trim();
+    profile.email = email
+      ? email.trim().toLowerCase()
+      : "";
+    profile.serviceableArea = serviceableArea
+      ? serviceableArea.trim()
+      : "";
+
+    // Profile image uploaded through Multer
+    if (req.file) {
+      profile.profileImage = `/uploads/painter/${req.file.filename}`;
+    }
+
+    await profile.save();
+
+    return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
       data: profile,
@@ -49,7 +53,7 @@ const editPainterProfile = async (req, res) => {
   } catch (error) {
     console.error("Edit Painter Profile Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to edit painter profile",
       error: error.message,
