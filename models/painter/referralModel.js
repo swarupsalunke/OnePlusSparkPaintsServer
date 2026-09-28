@@ -17,12 +17,12 @@ const referralSchema = new mongoose.Schema(
 
     referredName: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
 
     category: {
-      type: String,
+      type: [String],
       enum: [
         "PAINTER",
         "DEALER",

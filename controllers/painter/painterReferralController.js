@@ -79,14 +79,41 @@ exports.createReferral = async (req, res) => {
       });
     }
 
-    const { referredName, category } = req.body;
+    const { categories } = req.body;
 
-    if (!referredName || !category) {
+    if (
+      !Array.isArray(categories) ||
+      categories.length === 0
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Referred name and category are required",
+        message: "At least one referral category is required",
       });
     }
+
+    const allowedCategories = [
+      "PAINTER",
+      "DEALER",
+      "CONTRACTOR",
+      "ENGINEER",
+      "ARCHITECT",
+      "BUILDER",
+      "INTERIOR_DESIGNER",
+      "OTHER",
+    ];
+
+    const normalizedCategories = categories
+      .map((category) => category?.toString().trim().toUpperCase())
+      .filter((category) => allowedCategories.includes(category));
+
+    if (normalizedCategories.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid referral category",
+      });
+    }
+
+    const uniqueCategories = [...new Set(normalizedCategories)];
 
     let referralCode;
     let isUnique = false;
@@ -106,10 +133,11 @@ exports.createReferral = async (req, res) => {
     const referral = await Referral.create({
       referrer: userId,
       referralCode,
-      referredName,
-      category,
+      referredName: "",
+      category: uniqueCategories,
       status: "PENDING",
-      referralShared: false,
+      referralShared: true,
+      sharedAt: new Date(),
     });
 
     res.status(201).json({

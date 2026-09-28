@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../../models/superadmin/User");
 const Order = require("../../models/superadmin/Order");
 const RewardTransaction = require("../../models/superadmin/RewardTransaction");
+const PainterProfile = require("../../models/painter/PainterProfile");
 
 // ==========================================
 // CREATE USER
@@ -76,6 +77,7 @@ const createUser = async (req, res) => {
           "Name, user ID, email, mobile, password and role are required",
       });
     }
+
 
     // ==========================================
     // CHECK EXISTING USER ID
@@ -232,6 +234,18 @@ const createUser = async (req, res) => {
 
       kyc: parsedKyc,
     });
+
+    if (role === "PAINTER") {
+      await PainterProfile.create({
+        painterId: user._id,
+        name: name.trim(),
+        mobile,
+        email: email.toLowerCase(),
+        profileImage: profilePicture,
+        city: city || "",
+        serviceableArea: "",
+      });
+    }
 
     // ==========================================
     // REMOVE PASSWORD FROM RESPONSE

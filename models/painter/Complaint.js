@@ -15,6 +15,12 @@ const complaintCommentSchema = new mongoose.Schema(
 
 const complaintSchema = new mongoose.Schema(
   {
+    painterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
     complaintId: {
       type: String,
       unique: true,

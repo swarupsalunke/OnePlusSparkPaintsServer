@@ -60,3 +60,70 @@ exports.getPainterSchemeById = async (req, res) => {
     });
   }
 };
+
+// Download Painter Scheme PDF
+exports.downloadPainterSchemePdf = async (req, res) => {
+  try {
+    const scheme = await Scheme.findOne({
+      _id: req.params.id,
+      applicableTo: {
+        $in: ["PAINTERS", "BOTH"],
+      },
+    }).lean();
+
+    if (!scheme) {
+      return res.status(404).json({
+        success: false,
+        message: "Scheme not found",
+      });
+    }
+
+    if (!scheme.pdf) {
+      return res.status(404).json({
+        success: false,
+        message: "Scheme PDF not available",
+      });
+    }
+
+    const path = require("path");
+
+    const relativePath = scheme.pdf.replace(/^[/\\]+/, "");
+
+    const pdfPath = path.join(
+      __dirname,
+      "../../",
+      relativePath
+    );
+
+    return res.download(
+      pdfPath,
+      `${scheme.schemeName || "scheme"}.pdf`,
+      (error) => {
+        if (error) {
+          console.error(
+            "Scheme PDF download error:",
+            error
+          );
+
+          if (!res.headersSent) {
+            return res.status(500).json({
+              success: false,
+              message: "Failed to download scheme PDF",
+            });
+          }
+        }
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Download painter scheme PDF error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to download scheme PDF",
+      error: error.message,
+    });
+  }
+};

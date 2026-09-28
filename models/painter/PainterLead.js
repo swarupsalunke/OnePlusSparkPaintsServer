@@ -27,6 +27,12 @@ const painterLeadSchema = new mongoose.Schema(
       trim: true,
     },
 
+    assignedPainter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
     lastActivity: {
       type: Date,
       default: Date.now,

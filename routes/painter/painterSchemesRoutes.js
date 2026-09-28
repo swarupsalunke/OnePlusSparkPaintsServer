@@ -3,6 +3,7 @@ const express = require("express");
 const {
   getPainterSchemes,
   getPainterSchemeById,
+  downloadPainterSchemePdf,
 } = require("../../controllers/painter/painterSchemesController");
 
 const authMiddleware = require("../../middleware/authMiddleware");
@@ -28,5 +29,11 @@ router.get(
   getPainterSchemeById
 );
 
+router.get(
+  "/:id/download",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  downloadPainterSchemePdf
+);
 
 module.exports = router;

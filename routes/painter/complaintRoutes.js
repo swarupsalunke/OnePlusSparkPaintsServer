@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const {
@@ -14,20 +15,64 @@ const {
 
 const complaintUpload = require("../../middleware/complaintUpload");
 
-router.post("/", complaintUpload.array("attachments", 5), createComplaint);
+const authMiddleware = require("../../middleware/authMiddleware");
+const roleMiddleware = require("../../middleware/roleMiddleware");
 
-router.get("/", getComplaints);
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  complaintUpload.array("attachments", 5),
+  createComplaint
+);
 
-router.get("/stats", getComplaintStats);
+router.get(
+  "/",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  getComplaints
+);
 
-router.get("/history", getComplaintHistory);
+router.get(
+  "/stats",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  getComplaintStats
+);
 
-router.get("/:id", getComplaintDetails);
+router.get(
+  "/history",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  getComplaintHistory
+);
 
-router.post("/:id/comments", addComplaintComment);
+router.get(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  getComplaintDetails
+);
 
-router.put("/:id/status", updateComplaintStatus);
+router.post(
+  "/:id/comments",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  addComplaintComment
+);
 
-router.put("/:id/close", closeComplaint);
+router.put(
+  "/:id/status",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  updateComplaintStatus
+);
+
+router.put(
+  "/:id/close",
+  authMiddleware,
+  roleMiddleware("PAINTER"),
+  closeComplaint
+);
 
 module.exports = router;

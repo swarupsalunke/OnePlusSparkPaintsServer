@@ -13,6 +13,15 @@ const createCustomer = async (req, res) => {
       source,
     } = req.body;
 
+    const painterId = req.user?.userId;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
+
     const customer = await PainterCustomer.create({
       name,
       mobile,
@@ -40,12 +49,13 @@ const createCustomer = async (req, res) => {
       }
     }
 
-    // Create Lead automatically
+    // Create Lead automatically for logged-in painter
     const lead = await PainterLead.create({
       leadId: `LD-${nextLeadNumber}`,
       customer: customer._id,
       customerName: customer.name,
       area: customer.city,
+      assignedPainter: painterId,
       lastActivity: new Date(),
       status: "Assigned",
     });
@@ -57,6 +67,8 @@ const createCustomer = async (req, res) => {
       lead,
     });
   } catch (error) {
+    console.error("Create Customer Error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to create customer and lead",

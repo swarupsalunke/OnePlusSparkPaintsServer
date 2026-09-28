@@ -405,14 +405,13 @@ exports.deleteDocument = async (req, res) => {
   }
 };
 
-
-// =====================================================
+// ==========================================
 // DOWNLOAD DOCUMENT
-// =====================================================
+// ==========================================
+
 exports.downloadDocument = async (req, res) => {
   try {
-    const document =
-      await Document.findById(req.params.id);
+    const document = await Document.findById(req.params.id);
 
     if (!document) {
       return res.status(404).json({
@@ -428,45 +427,54 @@ exports.downloadDocument = async (req, res) => {
       });
     }
 
-    await Document.findByIdAndUpdate(
-      req.params.id,
-      {
-        $inc: {
-          downloadCount: 1,
-        },
-      }
-    );
+    if (!document.fileUrl) {
+      return res.status(404).json({
+        success: false,
+        message: "Document file not available",
+      });
+    }
 
     const filePath = path.join(
       __dirname,
-      "..",
-      document.fileUrl
+      "../../",
+      document.fileUrl.replace(/^[/\\]+/, "")
     );
 
-    res.download(
+    return res.download(
       filePath,
-      document.fileName,
-      (error) => {
+      document.fileName || "document",
+      async (error) => {
         if (error) {
-          console.error(
-            "File download error:",
-            error
-          );
+          console.error("Download document error:", error);
 
           if (!res.headersSent) {
-            res.status(500).json({
+            return res.status(500).json({
               success: false,
               message: "Failed to download document",
-              error: error.message,
             });
           }
+
+          return;
+        }
+
+        try {
+          await Document.findByIdAndUpdate(document._id, {
+            $inc: {
+              downloadCount: 1,
+            },
+          });
+        } catch (countError) {
+          console.error(
+            "Download count update error:",
+            countError
+          );
         }
       }
     );
   } catch (error) {
     console.error("Download document error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to download document",
       error: error.message,

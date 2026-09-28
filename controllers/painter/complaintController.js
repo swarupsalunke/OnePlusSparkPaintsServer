@@ -25,6 +25,15 @@ const createComplaint = async (req, res) => {
   try {
     const { type, title, description, priority } = req.body;
 
+    const painterId = req.user?.userId;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
+
     if (!type || !title || !description) {
       return res.status(400).json({
         success: false,
@@ -41,6 +50,7 @@ const createComplaint = async (req, res) => {
     }));
 
     const complaint = await Complaint.create({
+      painterId,
       complaintId,
       type,
       title,
@@ -68,7 +78,18 @@ const createComplaint = async (req, res) => {
 
 const getComplaints = async (req, res) => {
   try {
-    const complaints = await Complaint.find()
+    const painterId = req.user?.userId;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
+
+    const complaints = await Complaint.find({
+      painterId,
+    })
       .sort({ createdAt: -1 })
       .select(
         "complaintId type title priority status submittedAt resolvedAt createdAt"
@@ -92,7 +113,19 @@ const getComplaints = async (req, res) => {
 
 const getComplaintDetails = async (req, res) => {
   try {
-    const complaint = await Complaint.findById(req.params.id);
+    const painterId = req.user?.userId;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
+
+    const complaint = await Complaint.findOne({
+      _id: req.params.id,
+      painterId,
+    });
 
     if (!complaint) {
       return res.status(404).json({
@@ -118,7 +151,15 @@ const getComplaintDetails = async (req, res) => {
 
 const addComplaintComment = async (req, res) => {
   try {
+    const painterId = req.user?.userId;
     const { comment } = req.body;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
 
     if (!comment || !comment.trim()) {
       return res.status(400).json({
@@ -127,7 +168,10 @@ const addComplaintComment = async (req, res) => {
       });
     }
 
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findOne({
+      _id: req.params.id,
+      painterId,
+    });
 
     if (!complaint) {
       return res.status(404).json({
@@ -160,7 +204,19 @@ const addComplaintComment = async (req, res) => {
 
 const closeComplaint = async (req, res) => {
   try {
-    const complaint = await Complaint.findById(req.params.id);
+    const painterId = req.user?.userId;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
+
+    const complaint = await Complaint.findOne({
+      _id: req.params.id,
+      painterId,
+    });
 
     if (!complaint) {
       return res.status(404).json({
@@ -199,7 +255,18 @@ const closeComplaint = async (req, res) => {
 
 const getComplaintHistory = async (req, res) => {
   try {
-    const complaints = await Complaint.find()
+    const painterId = req.user?.userId;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
+
+    const complaints = await Complaint.find({
+      painterId,
+    })
       .sort({ submittedAt: -1 })
       .select(
         "complaintId type submittedAt resolvedAt status"
@@ -223,11 +290,34 @@ const getComplaintHistory = async (req, res) => {
 
 const getComplaintStats = async (req, res) => {
   try {
+    const painterId = req.user?.userId;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
+
     const [open, underReview, closed, total] = await Promise.all([
-      Complaint.countDocuments({ status: "Open" }),
-      Complaint.countDocuments({ status: "Under Review" }),
-      Complaint.countDocuments({ status: "Closed" }),
-      Complaint.countDocuments(),
+      Complaint.countDocuments({
+        painterId,
+        status: "Open",
+      }),
+
+      Complaint.countDocuments({
+        painterId,
+        status: "Under Review",
+      }),
+
+      Complaint.countDocuments({
+        painterId,
+        status: "Closed",
+      }),
+
+      Complaint.countDocuments({
+        painterId,
+      }),
     ]);
 
     res.status(200).json({
@@ -252,7 +342,15 @@ const getComplaintStats = async (req, res) => {
 
 const updateComplaintStatus = async (req, res) => {
   try {
+    const painterId = req.user?.userId;
     const { status } = req.body;
+
+    if (!painterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Painter authentication required",
+      });
+    }
 
     const allowedStatuses = [
       "Open",
@@ -267,7 +365,10 @@ const updateComplaintStatus = async (req, res) => {
       });
     }
 
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findOne({
+      _id: req.params.id,
+      painterId,
+    });
 
     if (!complaint) {
       return res.status(404).json({
