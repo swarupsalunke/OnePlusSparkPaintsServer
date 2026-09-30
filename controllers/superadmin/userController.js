@@ -348,6 +348,7 @@ const updateUser = async (req, res) => {
       userId,
       email,
       mobile,
+      password,
       role,
 
       // Personal Details
@@ -468,6 +469,9 @@ const updateUser = async (req, res) => {
 
     if (role !== undefined) {
       user.role = role;
+    }
+    if (password && password.trim()) {
+      user.password = await bcrypt.hash(password, 10);
     }
 
     // ==========================================

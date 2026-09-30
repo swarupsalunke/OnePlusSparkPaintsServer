@@ -43,7 +43,8 @@ router.get(
     "DIRECTOR",
     "MANAGER",
     "ACCOUNTANT",
-    "SALES_EXECUTIVE"
+    "SALES_EXECUTIVE",
+    "DEALER"
   ),
   getProducts
 );
@@ -76,7 +77,8 @@ router.get(
     "DIRECTOR",
     "MANAGER",
     "ACCOUNTANT",
-    "SALES_EXECUTIVE"
+    "SALES_EXECUTIVE",
+    "DEALER"
   ),
   getProductById
 );
@@ -91,7 +93,7 @@ router.put(
   roleMiddleware(
     "SUPER_ADMIN",
     "DIRECTOR",
-    "MANAGER"
+    "MANAGER",
   ),
   productUpload.single("image"),
   updateProduct,

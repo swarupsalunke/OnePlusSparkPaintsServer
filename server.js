@@ -95,6 +95,10 @@ const painterShareProfileRoutes = require("./routes/painter/painterShareProfileR
 const painterProfilePreviewRoutes = require("./routes/painter/painterProfilePreviewRoutes");
 const painterAnalyticsRoutes = require("./routes/painter/painterAnalyticsRoutes");
 
+// Dealer
+const dealerCartRoutes = require("./routes/dealer/dealerCartRoutes");
+const dealerOrderRoutes = require("./routes/dealer/dealerOrderRoutes");
+
 
 const { startBirthdayReminderService,
 } = require("./services/birthdayReminderService");
@@ -208,6 +212,10 @@ app.use("/api/painter/profile/share", painterShareProfileRoutes);
 app.use("/api/painter/profile/preview", painterProfilePreviewRoutes);
 app.use("/api/painter/analytics", painterAnalyticsRoutes);
 app.use("/api/painter/analytics", painterAnalyticsRoutes);
+
+// Dealer
+app.use("/api/dealer/cart", dealerCartRoutes);
+app.use("/api/dealer/orders", dealerOrderRoutes);
 
 app.get("/", (req, res) => {
   res.json({
