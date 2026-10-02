@@ -94,7 +94,7 @@ const updatePainterAddressDetails = async (req, res) => {
         pinCode,
       },
       {
-        new: true,
+       returnDocument: "after",
         runValidators: true,
       }
     );

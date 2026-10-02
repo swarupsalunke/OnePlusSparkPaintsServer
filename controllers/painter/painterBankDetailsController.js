@@ -120,7 +120,7 @@ const updatePainterBankDetails = async (req, res) => {
                 ifsc,
             },
             {
-                new: true,
+                returnDocument: "after",
                 runValidators: true,
             }
         );

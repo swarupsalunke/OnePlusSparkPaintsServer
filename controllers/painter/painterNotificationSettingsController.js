@@ -49,7 +49,7 @@ const updateNotificationSettings = async (req, res) => {
         marketingCampaigns,
       },
       {
-        new: true,
+        returnDocument: "after",
         upsert: true,
         runValidators: true,
         setDefaultsOnInsert: true,

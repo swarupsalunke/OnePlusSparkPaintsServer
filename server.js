@@ -101,6 +101,12 @@ const dealerOrderRoutes = require("./routes/dealer/dealerOrderRoutes");
 const dealerRewardRedemptionRoutes = require("./routes/dealer/dealerRewardRedemptionRoutes");
 const dealerLoyaltyTierRoutes = require("./routes/dealer/dealerLoyaltyTierRoutes");
 const dealerPainterEnquiryRoutes = require("./routes/dealer/dealerPainterEnquiryRoutes");
+const dealerPaymentOutstandingRoutes = require("./routes/dealer/dealerPaymentOutstandingRoutes");
+const dealerPurchaseAnalyticsRoutes = require("./routes/dealer/dealerPurchaseAnalyticsRoutes");
+const dealerReferralRoutes = require("./routes/dealer/dealerReferralRoutes");
+const dealerComplaintRoutes = require("./routes/dealer/dealerComplaintRoutes");
+const dealerProfileRoutes = require("./routes/dealer/dealerProfileRoutes");
+
 
 
 const { startBirthdayReminderService,
@@ -222,6 +228,12 @@ app.use("/api/dealer/orders", dealerOrderRoutes);
 app.use("/api/dealer/reward-redemptions", dealerRewardRedemptionRoutes);
 app.use("/api/dealer/loyalty-tier", dealerLoyaltyTierRoutes);
 app.use("/api/dealer/painter-enquiries", dealerPainterEnquiryRoutes);
+app.use("/api/dealer/payment-outstanding", dealerPaymentOutstandingRoutes);
+app.use("/api/dealer/purchase-analytics", dealerPurchaseAnalyticsRoutes);
+app.use("/api/dealer/referrals", dealerReferralRoutes);
+app.use("/api/dealer/complaints", dealerComplaintRoutes);
+app.use("/api/dealer/profile", dealerProfileRoutes);
+
 
 app.get("/", (req, res) => {
   res.json({
