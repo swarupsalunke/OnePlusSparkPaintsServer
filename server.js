@@ -107,6 +107,10 @@ const dealerReferralRoutes = require("./routes/dealer/dealerReferralRoutes");
 const dealerComplaintRoutes = require("./routes/dealer/dealerComplaintRoutes");
 const dealerProfileRoutes = require("./routes/dealer/dealerProfileRoutes");
 
+// Sales
+const salesExecutiveAttendanceRoutes = require("./routes/salesExecutive/salesExecutiveAttendanceRoutes");
+const salesExecutiveBeatRoutes = require("./routes/salesExecutive/salesExecutiveBeatRoutes");
+
 
 
 const { startBirthdayReminderService,
@@ -233,6 +237,10 @@ app.use("/api/dealer/purchase-analytics", dealerPurchaseAnalyticsRoutes);
 app.use("/api/dealer/referrals", dealerReferralRoutes);
 app.use("/api/dealer/complaints", dealerComplaintRoutes);
 app.use("/api/dealer/profile", dealerProfileRoutes);
+
+// Sales
+app.use("/api/sales-executive/attendance", salesExecutiveAttendanceRoutes);
+app.use("/api/sales-executive/beat", salesExecutiveBeatRoutes);
 
 
 app.get("/", (req, res) => {

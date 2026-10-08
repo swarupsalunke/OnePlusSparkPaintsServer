@@ -4,7 +4,7 @@ const visitSchema = new mongoose.Schema(
   {
     visitType: {
       type: String,
-      enum: ["DEALER", "PAINTER"],
+      enum: ["DEALER", "RETAILER", "PAINTER"],
       required: true,
     },
 
@@ -79,7 +79,8 @@ const visitSchema = new mongoose.Schema(
         "PLANNED",
         "IN_PROGRESS",
         "COMPLETED",
-        "CANCELLED",
+        "MISSED",
+        "RESCHEDULED",
       ],
       default: "PLANNED",
     },
@@ -104,6 +105,47 @@ const visitSchema = new mongoose.Schema(
         type: Date,
         default: null,
       },
+    },
+
+    visitPhoto: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    meetingNotes: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    followUpDate: {
+      type: Date,
+      default: null,
+    },
+
+    productDiscussion: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    orderBooking: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    collectionEntry: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    complaintRegistration: {
+      type: String,
+      trim: true,
+      default: "",
     },
 
     remarks: {

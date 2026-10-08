@@ -11,6 +11,7 @@ const {
 
   updateVisitStatus,
   updateGPSLocation,
+  updateVisitDetails,
 
   createBeat,
   getBeats,
@@ -29,6 +30,7 @@ const {
 
   getVisitHistory,
 } = require("../../controllers/superadmin/salesVisitController");
+const salesVisitUpload = require("../../middleware/salesVisitUpload");
 
 const router = express.Router();
 
@@ -173,5 +175,10 @@ router.patch(
   updateGPSLocation
 );
 
+router.patch(
+  "/:id/details",
+  salesVisitUpload.single("visitPhoto"),
+  updateVisitDetails
+);
 
 module.exports = router;

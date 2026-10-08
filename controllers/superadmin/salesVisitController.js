@@ -201,6 +201,7 @@ exports.getVisitById = async (req, res) => {
 // =====================================================
 // CREATE VISIT
 // =====================================================
+
 exports.createVisit = async (req, res) => {
   try {
     const {
@@ -216,6 +217,13 @@ exports.createVisit = async (req, res) => {
       assignedTo,
       location,
       visitStatus,
+      visitPhoto,
+      meetingNotes,
+      followUpDate,
+      productDiscussion,
+      orderBooking,
+      collectionEntry,
+      complaintRegistration,
       remarks,
     } = req.body;
 
@@ -232,6 +240,13 @@ exports.createVisit = async (req, res) => {
       assignedTo,
       location,
       visitStatus,
+      visitPhoto,
+      meetingNotes,
+      followUpDate,
+      productDiscussion,
+      orderBooking,
+      collectionEntry,
+      complaintRegistration,
       remarks,
     });
 
@@ -241,10 +256,7 @@ exports.createVisit = async (req, res) => {
       visit,
     });
   } catch (error) {
-    console.error(
-      "Create visit error:",
-      error
-    );
+    console.error("Create visit error:", error);
 
     res.status(500).json({
       success: false,
@@ -842,6 +854,105 @@ exports.deleteRoute = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete route",
+      error: error.message,
+    });
+  }
+};
+
+// =====================================================
+// UPDATE DURING VISIT DETAILS
+// =====================================================
+
+exports.updateVisitDetails = async (req, res) => {
+  try {
+    const {
+      latitude,
+      longitude,
+      meetingNotes,
+      followUpDate,
+      productDiscussion,
+      orderBooking,
+      collectionEntry,
+      complaintRegistration,
+      remarks,
+    } = req.body;
+
+    const updateData = {};
+
+    if (latitude !== undefined && latitude !== "") {
+      updateData["location.latitude"] = Number(latitude);
+      updateData["gpsTracking.lastLatitude"] = Number(latitude);
+    }
+
+    if (longitude !== undefined && longitude !== "") {
+      updateData["location.longitude"] = Number(longitude);
+      updateData["gpsTracking.lastLongitude"] = Number(longitude);
+    }
+
+    if (latitude !== undefined || longitude !== undefined) {
+      updateData["gpsTracking.enabled"] = true;
+      updateData["gpsTracking.lastTrackedAt"] = new Date();
+    }
+
+    if (meetingNotes !== undefined) {
+      updateData.meetingNotes = meetingNotes;
+    }
+
+    if (followUpDate !== undefined && followUpDate !== "") {
+      updateData.followUpDate = followUpDate;
+    }
+
+    if (productDiscussion !== undefined) {
+      updateData.productDiscussion = productDiscussion;
+    }
+
+    if (orderBooking !== undefined) {
+      updateData.orderBooking = orderBooking;
+    }
+
+    if (collectionEntry !== undefined) {
+      updateData.collectionEntry = collectionEntry;
+    }
+
+    if (complaintRegistration !== undefined) {
+      updateData.complaintRegistration = complaintRegistration;
+    }
+
+    if (remarks !== undefined) {
+      updateData.remarks = remarks;
+    }
+
+    if (req.file) {
+      updateData.visitPhoto = `/uploads/sales-visits/${req.file.filename}`;
+    }
+
+    const visit = await Visit.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      {
+        returnDocument: "after",
+        runValidators: true,
+      }
+    );
+
+    if (!visit) {
+      return res.status(404).json({
+        success: false,
+        message: "Visit not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Visit details updated successfully",
+      visit,
+    });
+  } catch (error) {
+    console.error("Update visit details error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update visit details",
       error: error.message,
     });
   }
