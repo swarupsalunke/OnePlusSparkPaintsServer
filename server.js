@@ -110,6 +110,9 @@ const dealerProfileRoutes = require("./routes/dealer/dealerProfileRoutes");
 // Sales
 const salesExecutiveAttendanceRoutes = require("./routes/salesExecutive/salesExecutiveAttendanceRoutes");
 const salesExecutiveBeatRoutes = require("./routes/salesExecutive/salesExecutiveBeatRoutes");
+const salesExecutiveLeadRoutes = require("./routes/salesExecutive/salesExecutiveLeadRoutes");
+const salesOrderRoutes = require("./routes/salesExecutive/salesOrderRoutes");
+const collectionRoutes = require("./routes/salesExecutive/collectionRoutes");
 
 
 
@@ -241,6 +244,10 @@ app.use("/api/dealer/profile", dealerProfileRoutes);
 // Sales
 app.use("/api/sales-executive/attendance", salesExecutiveAttendanceRoutes);
 app.use("/api/sales-executive/beat", salesExecutiveBeatRoutes);
+app.use("/api/sales-executive/leads", salesExecutiveLeadRoutes);
+app.use("/api/sales-executive/orders", salesOrderRoutes);
+app.use("/api/sales-executive/collections", collectionRoutes);
+
 
 
 app.get("/", (req, res) => {
