@@ -113,6 +113,7 @@ const salesExecutiveBeatRoutes = require("./routes/salesExecutive/salesExecutive
 const salesExecutiveLeadRoutes = require("./routes/salesExecutive/salesExecutiveLeadRoutes");
 const salesOrderRoutes = require("./routes/salesExecutive/salesOrderRoutes");
 const collectionRoutes = require("./routes/salesExecutive/collectionRoutes");
+const superAdminCollectionRoutes = require("./routes/superadmin/collectionRoutes");
 
 
 
@@ -247,7 +248,7 @@ app.use("/api/sales-executive/beat", salesExecutiveBeatRoutes);
 app.use("/api/sales-executive/leads", salesExecutiveLeadRoutes);
 app.use("/api/sales-executive/orders", salesOrderRoutes);
 app.use("/api/sales-executive/collections", collectionRoutes);
-
+app.use("/api/superadmin/collections", superAdminCollectionRoutes);
 
 
 app.get("/", (req, res) => {

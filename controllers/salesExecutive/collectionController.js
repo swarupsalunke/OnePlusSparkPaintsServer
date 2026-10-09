@@ -242,13 +242,17 @@ const createCollection = async (req, res) => {
                 "Payment entry created successfully and is pending verification",
             collection: payment,
         });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Failed to create payment entry",
-            error: error.message,
-        });
-    }
+    
+} catch (error) {
+    console.error("CREATE COLLECTION ERROR:", error);
+
+    return res.status(500).json({
+        success: false,
+        message: "Failed to create payment entry",
+        error: error.message,
+    });
+}
+
 };
 
 // GET COLLECTION HISTORY
@@ -299,8 +303,113 @@ const getCollections = async (req, res) => {
     }
 };
 
+// ADMIN: VERIFY OR REJECT COLLECTION
+const updateCollectionVerification = async (req, res) => {
+    try {
+        const adminId = req.user?.userId;
+        const { status, remarks = "" } = req.body;
+        const { id } = req.params;
+
+        if (!adminId) {
+            return res.status(401).json({
+                success: false,
+                message: "Admin authentication required",
+            });
+        }
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid collection ID is required",
+            });
+        }
+
+        if (!["Verified", "Rejected"].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: "Status must be Verified or Rejected",
+            });
+        }
+
+        const collection = await Collection.findById(id);
+
+        if (!collection) {
+            return res.status(404).json({
+                success: false,
+                message: "Collection record not found",
+            });
+        }
+
+        if (collection.status !== "Pending") {
+            return res.status(400).json({
+                success: false,
+                message: `Only Pending collections can be reviewed. Current status: ${collection.status}`,
+            });
+        }
+
+        if (status === "Verified") {
+            const order = await SalesOrder.findById(collection.salesOrder);
+
+            if (!order || order.status === "Cancelled") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Collection cannot be verified because its order is missing or cancelled",
+                });
+            }
+
+            const otherVerifiedPayments = await Collection.find({
+                _id: { $ne: collection._id },
+                salesOrder: collection.salesOrder,
+                status: "Verified",
+            });
+
+            const alreadyCollected = otherVerifiedPayments.reduce(
+                (total, item) => total + Number(item.paymentAmount || 0),
+                0
+            );
+
+            if (alreadyCollected + collection.paymentAmount > order.totalAmount) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Verifying this payment would exceed the invoice amount",
+                });
+            }
+
+            collection.invoiceAmount = order.totalAmount;
+            collection.verifiedBy = adminId;
+            collection.verifiedAt = new Date();
+        } else {
+            collection.verifiedBy = adminId;
+            collection.verifiedAt = new Date();
+        }
+
+        collection.status = status;
+
+        if (remarks.trim()) {
+            collection.remarks = collection.remarks
+                ? `${collection.remarks}\nAdmin: ${remarks.trim()}`
+                : `Admin: ${remarks.trim()}`;
+        }
+
+        await collection.save();
+
+        return res.status(200).json({
+            success: true,
+            message: `Collection ${status.toLowerCase()} successfully`,
+            collection,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update collection verification",
+            error: error.message,
+        });
+    }
+};
+
 module.exports = {
     getOutstandingInvoices,
     createCollection,
     getCollections,
+    updateCollectionVerification,
 };
