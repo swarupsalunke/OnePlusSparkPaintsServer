@@ -1,8 +1,11 @@
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../../models/superadmin/User");
 const Order = require("../../models/superadmin/Order");
 const RewardTransaction = require("../../models/superadmin/RewardTransaction");
 const PainterProfile = require("../../models/painter/PainterProfile");
+const DealerRegistration = require("../../models/salesExecutive/DealerRegistration");
+const PainterRegistration = require("../../models/salesExecutive/PainterRegistration");
 
 // ==========================================
 // CREATE USER
@@ -278,21 +281,71 @@ const createUser = async (req, res) => {
   }
 };
 
-// ==========================================
-// GET ALL USERS
-// GET /api/users
-// ==========================================
+// get user
 
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find()
-      .select("-password")
-      .sort({ createdAt: -1 });
+    const [users, dealerRegistrations, painterRegistrations] =
+      await Promise.all([
+        User.find()
+          .select("-password")
+          .sort({ createdAt: -1 })
+          .lean(),
+
+        DealerRegistration.find({
+          status: { $in: ["PENDING", "KYC_VERIFIED", "CORRECTION_REQUIRED"] },
+        })
+          .populate("salesExecutive", "name userId")
+          .sort({ createdAt: -1 })
+          .lean(),
+
+        PainterRegistration.find({
+          status: { $in: ["PENDING", "KYC_VERIFIED", "CORRECTION_REQUIRED"] },
+        })
+          .populate("salesExecutive", "name userId")
+          .sort({ createdAt: -1 })
+          .lean(),
+      ]);
+
+    const formattedDealers = dealerRegistrations.map((registration) => ({
+      ...registration,
+      name: registration.dealerName,
+      role: "DEALER",
+      registrationType: "DEALER",
+      registrationStatus: registration.status,
+      isRegistrationRequest: true,
+      userId: registration.registrationId,
+    }));
+
+    const formattedPainters = painterRegistrations.map((registration) => ({
+      ...registration,
+      role: "PAINTER",
+      registrationType: "PAINTER",
+      registrationStatus: registration.status,
+      isRegistrationRequest: true,
+      userId: registration.registrationId,
+    }));
+
+    const formattedUsers = users.map((user) => ({
+      ...user,
+      registrationType: null,
+      registrationStatus: null,
+      isRegistrationRequest: false,
+    }));
+
+    const allUsers = [
+      ...formattedDealers,
+      ...formattedPainters,
+      ...formattedUsers,
+    ].sort(
+      (a, b) =>
+        new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    );
 
     return res.status(200).json({
       success: true,
-      count: users.length,
-      users,
+      count: allUsers.length,
+      users: allUsers,
     });
   } catch (error) {
     console.error("Get users error:", error);
@@ -300,6 +353,7 @@ const getUsers = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch users",
+      error: error.message,
     });
   }
 };
@@ -309,30 +363,90 @@ const getUsers = async (req, res) => {
 // GET /api/users/:id
 // ==========================================
 
+
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    const { id } = req.params;
 
-    if (!user) {
-      return res.status(404).json({
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
         success: false,
-        message: "User not found",
+        message: "Invalid user or registration ID",
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      user,
+    // 1. First check normal User collection
+    const user = await User.findById(id).select("-password");
+
+    if (user) {
+      return res.status(200).json({
+        success: true,
+        registrationType: null,
+        isRegistrationRequest: false,
+        user,
+      });
+    }
+
+    // 2. Check Dealer registration
+    const dealerRegistration = await DealerRegistration.findById(id)
+      .populate("salesExecutive", "name userId email mobile");
+
+    if (dealerRegistration) {
+      const registration = dealerRegistration.toObject();
+
+      return res.status(200).json({
+        success: true,
+        registrationType: "DEALER",
+        isRegistrationRequest: true,
+        user: {
+          ...registration,
+          name: registration.dealerName,
+          role: "DEALER",
+          registrationType: "DEALER",
+          registrationStatus: registration.status,
+          isRegistrationRequest: true,
+          userId: registration.registrationId,
+        },
+      });
+    }
+
+    // 3. Check Painter registration
+    const painterRegistration = await PainterRegistration.findById(id)
+      .populate("salesExecutive", "name userId email mobile");
+
+    if (painterRegistration) {
+      const registration = painterRegistration.toObject();
+
+      return res.status(200).json({
+        success: true,
+        registrationType: "PAINTER",
+        isRegistrationRequest: true,
+        user: {
+          ...registration,
+          name: registration.name,
+          role: "PAINTER",
+          registrationType: "PAINTER",
+          registrationStatus: registration.status,
+          isRegistrationRequest: true,
+          userId: registration.registrationId,
+        },
+      });
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: "User or registration not found",
     });
   } catch (error) {
     console.error("Get user error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch user",
+      message: "Failed to fetch user details",
     });
   }
 };
+
 
 // ==========================================
 // UPDATE USER
