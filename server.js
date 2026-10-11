@@ -84,7 +84,8 @@ const painterVoiceHistoryRoutes = require("./routes/painter/painterVoiceHistoryR
 const painterLeadRoutes = require("./routes/painter/painterLeadRoutes");
 const painterFollowUpRoutes = require("./routes/painter/painterFollowUpRoutes");
 const painterSupportRoutes = require("./routes/painter/painterSupportRoutes");
-const complaintRoutes = require("./routes/painter/complaintRoutes");
+// const complaintRoutes = require("./routes/painter/complaintRoutes");
+const painterComplaintRoutes = require("./routes/painter/complaintRoutes");
 const painterProfileRoutes = require("./routes/painter/painterProfileRoutes");
 const painterEditProfileRoutes = require("./routes/painter/painterEditProfileRoutes");
 const painterBankDetailsRoutes = require("./routes/painter/painterBankDetailsRoutes");
@@ -104,6 +105,7 @@ const dealerPainterEnquiryRoutes = require("./routes/dealer/dealerPainterEnquiry
 const dealerPaymentOutstandingRoutes = require("./routes/dealer/dealerPaymentOutstandingRoutes");
 const dealerPurchaseAnalyticsRoutes = require("./routes/dealer/dealerPurchaseAnalyticsRoutes");
 const dealerReferralRoutes = require("./routes/dealer/dealerReferralRoutes");
+// const dealerComplaintRoutes = require("./routes/dealer/dealerComplaintRoutes");
 const dealerComplaintRoutes = require("./routes/dealer/dealerComplaintRoutes");
 const dealerProfileRoutes = require("./routes/dealer/dealerProfileRoutes");
 
@@ -118,8 +120,9 @@ const dealerRegistrationRoutes = require("./routes/salesExecutive/dealerRegistra
 const superAdminDealerRegistrationRoutes = require("./routes/superadmin/dealerRegistrationRoutes");
 const painterRegistrationRoutes = require("./routes/salesExecutive/painterRegistrationRoutes");
 const superAdminPainterRegistrationRoutes = require("./routes/superadmin/painterRegistrationRoutes");
-
-
+const salesExecutiveComplaintRoutes = require("./routes/salesExecutive/complaintRoutes");
+const painterListRoutes = require("./routes/salesExecutive/painterListRoutes");
+const targetRoutes = require("./routes/salesExecutive/targetRoutes");
 
 
 const { startBirthdayReminderService,
@@ -217,7 +220,8 @@ app.use("/api/painter", painterShopEnquiryRoutes);
 app.use("/api/painter", painterDealerRoutes);
 app.use("/api/painter", painterVoiceVideoRoutes);
 app.use("/api/painter", painterVoiceImageRoutes);
-app.use("/api/painter/complaints", complaintRoutes);
+// app.use("/api/painter/complaints", complaintRoutes);
+app.use("/api/painter/complaints", painterComplaintRoutes);
 app.use("/api/painter", painterFeedbackRoutes);
 app.use("/api/painter", painterVoiceHistoryRoutes);
 app.use("/api/painter/customers", painterCustomerRoutes);
@@ -244,6 +248,7 @@ app.use("/api/dealer/painter-enquiries", dealerPainterEnquiryRoutes);
 app.use("/api/dealer/payment-outstanding", dealerPaymentOutstandingRoutes);
 app.use("/api/dealer/purchase-analytics", dealerPurchaseAnalyticsRoutes);
 app.use("/api/dealer/referrals", dealerReferralRoutes);
+// app.use("/api/dealer/complaints", dealerComplaintRoutes);
 app.use("/api/dealer/complaints", dealerComplaintRoutes);
 app.use("/api/dealer/profile", dealerProfileRoutes);
 
@@ -258,6 +263,9 @@ app.use("/api/sales-executive/dealer-registrations", dealerRegistrationRoutes);
 app.use("/api/superadmin/dealer-registrations", superAdminDealerRegistrationRoutes);
 app.use("/api/sales-executive/painter-registrations", painterRegistrationRoutes);
 app.use("/api/superadmin/painter-registrations", superAdminPainterRegistrationRoutes);
+app.use("/api/sales-executive/complaints", salesExecutiveComplaintRoutes);
+app.use("/api/sales-executive/painters", painterListRoutes);
+app.use("/api/sales-executive/targets", targetRoutes);
 
 
 
