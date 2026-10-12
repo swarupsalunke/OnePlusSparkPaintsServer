@@ -6,12 +6,14 @@ const upload = require("../../middleware/uploadMiddleware");
 const {
   createDocument,
   getDocuments,
+  getSalesExecutiveDocuments,
   getDocumentById,
   updateDocument,
   publishDocument,
   disableDocument,
   deleteDocument,
   downloadDocument,
+
 } = require("../../controllers/superadmin/documentController");
 
 // =====================================================
@@ -27,6 +29,13 @@ router.post(
 // GET ALL DOCUMENTS
 // =====================================================
 router.get("/", getDocuments);
+
+
+// =====================================================
+// GET DOCUMENTS FOR SALES EXECUTIVE
+// =====================================================
+router.get("/sales-executive", getSalesExecutiveDocuments);
+
 
 // =====================================================
 // GET SINGLE DOCUMENT

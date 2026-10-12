@@ -131,6 +131,34 @@ exports.getDocuments = async (req, res) => {
 
 
 // =====================================================
+// GET PUBLISHED DOCUMENTS FOR SALES EXECUTIVE
+// =====================================================
+exports.getSalesExecutiveDocuments = async (req, res) => {
+  try {
+    const documents = await Document.find({
+      status: "PUBLISHED",
+      accessTo: "SALES_TEAM",
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: documents.length,
+      documents,
+    });
+  } catch (error) {
+    console.error("Get sales executive documents error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch documents",
+      error: error.message,
+    });
+  }
+};
+
+
+
+// =====================================================
 // GET SINGLE DOCUMENT
 // =====================================================
 exports.getDocumentById = async (req, res) => {
@@ -426,6 +454,13 @@ exports.downloadDocument = async (req, res) => {
         message: "This document is not available for download",
       });
     }
+
+    if (!document.accessTo.includes("SALES_TEAM")) {
+  return res.status(403).json({
+    success: false,
+    message: "You are not authorized to download this document",
+  });
+}
 
     if (!document.fileUrl) {
       return res.status(404).json({
