@@ -35,7 +35,6 @@ const birthdayRoutes = require("./routes/superadmin/birthdayRoutes");
 const greetingRoutes = require("./routes/superadmin/greetingRoutes");
 const feedbackRoutes = require("./routes/superadmin/feedbackRoutes");
 const loyaltyTierRoutes = require("./routes/superadmin/loyaltyTierRoutes");
-const followUpRoutes = require("./routes/superadmin/followUpRoutes");
 const salesVisitRoutes = require("./routes/superadmin/salesVisitRoutes");
 const bankPaymentRoutes = require("./routes/superadmin/bankPaymentRoutes");
 const approvalRoutes = require("./routes/superadmin/approvalRoutes");
@@ -123,6 +122,12 @@ const superAdminPainterRegistrationRoutes = require("./routes/superadmin/painter
 const salesExecutiveComplaintRoutes = require("./routes/salesExecutive/complaintRoutes");
 const painterListRoutes = require("./routes/salesExecutive/painterListRoutes");
 const targetRoutes = require("./routes/salesExecutive/targetRoutes");
+const followUpRoutes = require("./routes/superadmin/followUpRoutes");
+const salesExecutiveFollowUpRoutes = require("./routes/salesExecutive/followUpRoutes");
+const salesProfileRoutes = require("./routes/salesExecutive/salesProfileRoutes");
+const salesExecutiveDashboardRoutes = require("./routes/salesExecutive/dashboardRoutes");
+
+
 
 
 const { startBirthdayReminderService,
@@ -266,7 +271,9 @@ app.use("/api/superadmin/painter-registrations", superAdminPainterRegistrationRo
 app.use("/api/sales-executive/complaints", salesExecutiveComplaintRoutes);
 app.use("/api/sales-executive/painters", painterListRoutes);
 app.use("/api/sales-executive/targets", targetRoutes);
-
+app.use("/api/sales-executive/follow-ups", salesExecutiveFollowUpRoutes);
+app.use("/api/sales-executive/profile", salesProfileRoutes);
+app.use("/api/sales-executive/dashboard", salesExecutiveDashboardRoutes);
 
 
 app.get("/", (req, res) => {
