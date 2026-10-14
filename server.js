@@ -123,7 +123,7 @@ const salesExecutiveComplaintRoutes = require("./routes/salesExecutive/complaint
 const painterListRoutes = require("./routes/salesExecutive/painterListRoutes");
 const targetRoutes = require("./routes/salesExecutive/targetRoutes");
 const followUpRoutes = require("./routes/superadmin/followUpRoutes");
-const salesExecutiveFollowUpRoutes = require("./routes/salesExecutive/followUpRoutes");
+const salesExecutiveFollowUpRoutes = require("./routes/salesExecutive/FollowUpRoutes");
 const salesProfileRoutes = require("./routes/salesExecutive/salesProfileRoutes");
 const salesExecutiveDashboardRoutes = require("./routes/salesExecutive/dashboardRoutes");
 
