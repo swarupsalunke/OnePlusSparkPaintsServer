@@ -3,6 +3,7 @@ const User = require("../../models/superadmin/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const OTP = require("../../models/superadmin/OTP");
+const mongoose = require("mongoose");
 
 const registerUser = async (req, res) => {
   try {
@@ -98,6 +99,14 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Check database connection state
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: "Database connection is not ready. Please try again shortly.",
+      });
+    }
+
     // 2. Find user
     const user = await User.findOne({ email });
 
@@ -164,7 +173,7 @@ const loginUser = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message || "Server error",
     });
   }
 };

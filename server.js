@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 
 const connectDB = require("./config/db");
 // superadmin
@@ -135,6 +136,11 @@ const { startBirthdayReminderService,
 
 const path = require("path");
 dotenv.config();
+
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = "oneplus_spark_super_secret_key";
+}
+
 const app = express();
 
 
@@ -280,6 +286,16 @@ app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "OnePlus Spark CRM/ERP API is running",
+  });
+});
+
+app.get("/api/health", (req, res) => {
+  const states = ["disconnected", "connected", "connecting", "disconnecting"];
+  const dbState = states[mongoose.connection.readyState] || "unknown";
+  res.json({
+    success: true,
+    status: "ok",
+    database: dbState,
   });
 });
 
