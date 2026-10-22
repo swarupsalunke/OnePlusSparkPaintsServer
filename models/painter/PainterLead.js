@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+// model
+
 const painterLeadSchema = new mongoose.Schema(
   {
     leadId: {
