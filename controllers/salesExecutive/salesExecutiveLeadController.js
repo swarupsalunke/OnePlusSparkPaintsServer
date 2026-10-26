@@ -5,16 +5,19 @@ const SalesExecutiveLead = require("../../models/salesExecutive/SalesExecutiveLe
 const createLead = async (req, res) => {
   try {
     const {
-      customerName,
-      contactDetails,
-      businessType,
-      address,
-      productInterest,
-      estimatedBusiness,
-      source,
-      remarks,
-      status,
-      assignedTo,
+       customerName,
+  contactDetails,
+  businessType,
+  address,
+  city,
+  state,
+  pinCode,
+  productInterest,
+  estimatedBusiness,
+  source,
+  remarks,
+  status,
+  assignedTo,
     } = req.body;
 
     if (
@@ -34,18 +37,21 @@ const createLead = async (req, res) => {
       });
     }
 
-    const lead = await SalesExecutiveLead.create({
-      customerName,
-      contactDetails,
-      businessType,
-      address,
-      productInterest,
-      estimatedBusiness,
-      source,
-      remarks,
-      status,
-      assignedTo,
-    });
+   const lead = await SalesExecutiveLead.create({
+  customerName,
+  contactDetails,
+  businessType,
+  address,
+  city,
+  state,
+  pinCode,
+  productInterest,
+  estimatedBusiness,
+  source,
+  remarks,
+  status,
+  assignedTo,
+});
 
     return res.status(201).json({
       success: true,
@@ -113,6 +119,9 @@ const updateLead = async (req, res) => {
       "contactDetails",
       "businessType",
       "address",
+      "city",
+      "state",
+      "pinCode",
       "productInterest",
       "estimatedBusiness",
       "source",

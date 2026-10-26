@@ -1,5 +1,6 @@
 
 const mongoose = require("mongoose");
+const SalesExecutiveLead = require("../../models/salesExecutive/SalesExecutiveLead");
 
 const salesOrderItemSchema = new mongoose.Schema({
   product: {
@@ -26,6 +27,12 @@ const salesOrderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
+  },
+
+  lead: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SalesExecutiveLead",
+    default: null,
   },
   salesExecutive: {
     type: mongoose.Schema.Types.ObjectId,
@@ -74,6 +81,11 @@ const salesOrderSchema = new mongoose.Schema({
         "Cancelled",
       ],
       required: true,
+    },
+    lead: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SalesExecutiveLead",
+      default: null,
     },
     date: { type: Date, default: Date.now },
   }],

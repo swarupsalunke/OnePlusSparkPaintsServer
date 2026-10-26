@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const salesExecutiveLeadSchema = new mongoose.Schema(
@@ -16,12 +15,27 @@ const salesExecutiveLeadSchema = new mongoose.Schema(
     businessType: {
       type: String,
       required: true,
-      trim: true,
+      enum: ["Dealer", "Painter", "Channel Partner", "End User"],
     },
     address: {
       type: String,
       required: true,
       trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    pinCode: {
+      type: String,
+      trim: true,
+      default: "",
     },
     productInterest: {
       type: String,

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const SalesOrder = require("../../models/salesExecutive/SalesOrder");
 const Product = require("../../models/superadmin/Product");
 const User = require("../../models/superadmin/User");
+const SalesExecutiveLead = require("../../models/salesExecutive/SalesExecutiveLead");
 
 const generateOrderId = () =>
   `SEO-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -50,7 +51,13 @@ const getOrderProducts = async (req, res) => {
 const createSalesOrder = async (req, res) => {
   try {
     const salesExecutiveId = req.user?.userId;
-    const { dealer, items, remarks = "", status = "Submitted" } = req.body;
+    const {
+      dealer,
+      lead,
+      items,
+      remarks = "",
+      status = "Submitted",
+    } = req.body;
 
     if (!salesExecutiveId) {
       return res.status(401).json({
@@ -87,6 +94,24 @@ const createSalesOrder = async (req, res) => {
         message: "Dealer not found",
       });
     }
+
+
+    if (!mongoose.isValidObjectId(lead)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid lead is required",
+      });
+    }
+
+    const selectedLead = await SalesExecutiveLead.findById(lead);
+
+    if (!selectedLead) {
+      return res.status(404).json({
+        success: false,
+        message: "Selected lead not found",
+      });
+    }
+
 
     const productIds = items.map((item) => item.product);
     if (productIds.some((id) => !mongoose.isValidObjectId(id))) {
@@ -152,9 +177,11 @@ const createSalesOrder = async (req, res) => {
       };
     });
 
+
     const order = await SalesOrder.create({
       orderId: generateOrderId(),
       dealer,
+      lead: selectedLead._id,
       salesExecutive: salesExecutiveId,
       items: orderItems,
       subtotal,
@@ -165,23 +192,31 @@ const createSalesOrder = async (req, res) => {
       trackingHistory: [{ status, date: new Date() }],
     });
 
+
+
     const populatedOrder = await SalesOrder.findById(order._id)
       .populate("dealer", "name email")
+      .populate("lead", "customerName contactDetails businessType")
       .populate("salesExecutive", "name email")
       .populate("items.product");
+
 
     return res.status(201).json({
       success: true,
       message: "Sales order created successfully",
       order: populatedOrder,
     });
+
   } catch (error) {
+    console.error("Create Sales Order Error:", error);
+
     return res.status(400).json({
       success: false,
       message: "Failed to create sales order",
       error: error.message,
     });
   }
+
 };
 
 // ORDER HISTORY
