@@ -59,7 +59,7 @@ const createUser = async (req, res) => {
     // ==========================================
 
     const profilePicture = req.file
-      ? `/uploads/profiles/${req.file.filename}`
+      ? req.file.path
       : "";
 
     // ==========================================
@@ -593,8 +593,7 @@ const updateUser = async (req, res) => {
     // ==========================================
 
     if (req.file) {
-      user.profilePicture =
-        `/uploads/profiles/${req.file.filename}`;
+      user.profilePicture = req.file.path;
     }
 
     // ==========================================

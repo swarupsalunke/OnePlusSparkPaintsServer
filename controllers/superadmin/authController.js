@@ -5,87 +5,36 @@ const crypto = require("crypto");
 const OTP = require("../../models/superadmin/OTP");
 const mongoose = require("mongoose");
 
-const registerUser = async (req, res) => {
-  try {
-    const { name, email, mobile, password, role } = req.body;
+// 3. Generate a unique User ID
+let userId;
+let isUnique = false;
 
-    // 1. Required fields check
-    if (!name || !email || !mobile || !password || !role) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
+while (!isUnique) {
+  const lastUser = await User.findOne(
+    {},
+    { userId: 1 }
+  ).sort({ createdAt: -1 });
+
+  let nextNumber = 1;
+
+  if (lastUser && lastUser.userId) {
+    const match = lastUser.userId.match(/^USR(\d+)$/);
+
+    if (match) {
+      nextNumber = Number(match[1]) + 1;
+    } else {
+      nextNumber = Date.now();
     }
-
-    // 2. Check existing user
-    const existingUser = await User.findOne({
-      $or: [{ email }, { mobile }],
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "User with this email or mobile already exists",
-      });
-    }
-
-    // 3. Generate User ID
-    const lastUser = await User.findOne(
-      {},
-      { userId: 1 }
-    ).sort({ createdAt: -1 });
-
-    let nextNumber = 1;
-
-    if (lastUser && lastUser.userId) {
-      const lastNumber = parseInt(
-        lastUser.userId.replace("USR", ""),
-        10
-      );
-
-      if (!isNaN(lastNumber)) {
-        nextNumber = lastNumber + 1;
-      }
-    }
-
-    const userId = `USR${String(nextNumber).padStart(3, "0")}`;
-
-    // 4. Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 5. Create user
-    const user = await User.create({
-      name,
-      userId,
-      email,
-      mobile,
-      password: hashedPassword,
-      role,
-    });
-
-    // 6. Response
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      user: {
-        id: user._id,
-        userId: user.userId,
-        name: user.name,
-        email: user.email,
-        mobile: user.mobile,
-        role: user.role,
-        status: user.status,
-      },
-    });
-  } catch (error) {
-    console.error("Register error:", error.message);
-
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
   }
-};
+
+  userId = `USR${String(nextNumber).padStart(3, "0")}`;
+
+  const existingId = await User.findOne({ userId });
+
+  if (!existingId) {
+    isUnique = true;
+  }
+}
 
 const loginUser = async (req, res) => {
   try {
