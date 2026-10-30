@@ -43,6 +43,7 @@ const contactRoutes = require("./routes/superadmin/contactRoutes");
 const socialMediaRoutes = require("./routes/superadmin/socialMediaRoutes");
 const painterCustomerRoutes = require("./routes/painter/painterCustomerRoutes");
 const dashboardPreferenceRoutes = require("./routes/superadmin/dashboardPreferenceRoutes");
+const supplierVendorRoutes = require("./routes/superadmin/supplierVendorRoutes");
 
 // painter
 const painterDashboardRoutes = require("./routes/painter/dashboardRoutes");
@@ -196,6 +197,7 @@ app.use("/api/approvals", approvalRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/social-media", socialMediaRoutes);
 app.use("/api/dashboard-preferences", dashboardPreferenceRoutes);
+app.use("/api/suppliers-vendors", supplierVendorRoutes);
 
 // painter
 app.use("/api/painter", painterDashboardRoutes);
