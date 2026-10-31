@@ -516,13 +516,14 @@ exports.sendMessage = async (req, res) => {
             data: populatedMessage,
         });
     } catch (error) {
-        console.error("Send Message Error:", error);
+  console.error("Send Message Error:", error);
+  console.error("Error Details:", error.stack);
 
-        return res.status(400).json({
-            success: false,
-            message: error.message,
-        });
-    }
+  return res.status(500).json({
+    success: false,
+    message: "Unable to send message.",
+  });
+}
 };
 
 
