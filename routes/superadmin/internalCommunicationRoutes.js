@@ -13,6 +13,7 @@ const {
 } = require("../../controllers/superadmin/internalCommunicationController");
 
 const authMiddleware = require("../../middleware/authMiddleware");
+const uploadChatAttachment = require("../../middleware/uploadChatAttachment");
 
 // GET ALL CONVERSATIONS
 router.get("/", authMiddleware, getConversations);
@@ -27,7 +28,12 @@ router.post("/direct", authMiddleware, getOrCreateDirectConversation);
 router.get("/:conversationId/messages", authMiddleware, getMessages);
 
 // SEND MESSAGE
-router.post("/messages", authMiddleware, sendMessage);
+router.post(
+  "/messages",
+  authMiddleware,
+  uploadChatAttachment.single("file"),
+  sendMessage
+);
 
 // MARK MESSAGE AS READ
 router.patch("/messages/:messageId/read", authMiddleware, markMessageAsRead);

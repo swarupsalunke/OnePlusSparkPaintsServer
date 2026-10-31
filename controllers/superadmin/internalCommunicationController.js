@@ -367,6 +367,7 @@ exports.getMessages = async (req, res) => {
 // 5. SEND MESSAGE
 // =====================================
 
+
 exports.sendMessage = async (req, res) => {
     try {
         const user = await getCurrentUser(req);
@@ -378,7 +379,12 @@ exports.sendMessage = async (req, res) => {
             });
         }
 
-        const { conversationId, message, attachments, priority } = req.body;
+        const {
+            conversationId,
+            message,
+            attachments,
+            priority,
+        } = req.body || {};
 
         if (!mongoose.isValidObjectId(conversationId)) {
             return res.status(400).json({
@@ -406,9 +412,37 @@ exports.sendMessage = async (req, res) => {
         }
 
         const cleanMessage = (message || "").trim();
-        const messageAttachments = Array.isArray(attachments)
-            ? attachments
-            : [];
+
+        // Existing attachments + newly uploaded file
+        let messageAttachments = [];
+
+        if (req.body.attachments) {
+            try {
+                const parsed =
+                    typeof req.body.attachments === "string"
+                        ? JSON.parse(req.body.attachments)
+                        : req.body.attachments;
+
+                if (Array.isArray(parsed)) {
+                    messageAttachments = parsed;
+                }
+            } catch {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid attachment data",
+                });
+            }
+        }
+
+        // Cloudinary uploaded file
+        if (req.file) {
+            messageAttachments.push({
+                fileName: req.file.originalname,
+                fileUrl: req.file.path,
+                mimeType: req.file.mimetype,
+                fileSize: req.file.size || 0,
+            });
+        }
 
         if (!cleanMessage && messageAttachments.length === 0) {
             return res.status(400).json({
@@ -467,7 +501,6 @@ exports.sendMessage = async (req, res) => {
         const populatedMessage = await Message.findById(newMessage._id)
             .populate("sender", "name userId role profilePicture");
 
-        // REAL-TIME MESSAGE BROADCAST
         const io = req.app.get("io");
 
         if (io) {
@@ -483,12 +516,15 @@ exports.sendMessage = async (req, res) => {
             data: populatedMessage,
         });
     } catch (error) {
+        console.error("Send Message Error:", error);
+
         return res.status(400).json({
             success: false,
             message: error.message,
         });
     }
 };
+
 
 // =====================================
 // 6. MARK MESSAGE AS READ
