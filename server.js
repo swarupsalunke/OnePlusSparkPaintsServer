@@ -2,6 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const http = require("http");
+const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
+const User = require("./models/superadmin/User");
+const Conversation = require("./models/superadmin/Conversation");
 
 const connectDB = require("./config/db");
 // superadmin
@@ -44,6 +49,8 @@ const socialMediaRoutes = require("./routes/superadmin/socialMediaRoutes");
 const painterCustomerRoutes = require("./routes/painter/painterCustomerRoutes");
 const dashboardPreferenceRoutes = require("./routes/superadmin/dashboardPreferenceRoutes");
 const supplierVendorRoutes = require("./routes/superadmin/supplierVendorRoutes");
+const internalCommunicationRoutes = require("./routes/superadmin/internalCommunicationRoutes");
+
 
 // painter
 const painterDashboardRoutes = require("./routes/painter/dashboardRoutes");
@@ -145,6 +152,133 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+// SOCKET.IO JWT AUTHENTICATION
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+
+    if (!token) {
+      return next(new Error("Authentication token required"));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    socket.user = decoded;
+
+    next();
+  } catch (error) {
+    next(new Error("Invalid or expired token"));
+  }
+});
+
+// SOCKET CONNECTION
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.user.userId);
+
+  // Join personal room
+  socket.join(socket.user.userId.toString());
+
+  // JOIN CONVERSATION - WITH ACCESS CHECK
+  socket.on("join_conversation", async (conversationId, callback) => {
+    const reply = (data) => {
+      if (typeof callback === "function") {
+        callback(data);
+      }
+    };
+
+    try {
+      if (!mongoose.isValidObjectId(conversationId)) {
+        return reply({
+          success: false,
+          message: "Invalid conversation ID",
+        });
+      }
+
+      const user = await User.findOne({
+        _id: socket.user.userId,
+        status: "ACTIVE",
+      });
+
+      if (!user) {
+        return reply({
+          success: false,
+          message: "Active user not found",
+        });
+      }
+
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        isActive: true,
+      });
+
+      if (!conversation) {
+        return reply({
+          success: false,
+          message: "Conversation not found",
+        });
+      }
+
+      let allowed = false;
+
+      if (user.role === "SUPER_ADMIN") {
+        allowed = true;
+      } else if (conversation.type === "DIRECT") {
+        allowed = conversation.participants.some(
+          (id) => id.toString() === user._id.toString()
+        );
+      } else if (conversation.type === "DEPARTMENT") {
+        allowed =
+          user.department &&
+          user.department.trim().toLowerCase() ===
+            conversation.departmentKey;
+      }
+
+      if (!allowed) {
+        return reply({
+          success: false,
+          message: "You do not have access to this conversation",
+        });
+      }
+
+      socket.join(conversationId.toString());
+
+      return reply({
+        success: true,
+        message: "Conversation joined successfully",
+      });
+    } catch (error) {
+      console.error("Join conversation error:", error);
+
+      return reply({
+        success: false,
+        message: "Unable to join conversation",
+      });
+    }
+  });
+
+  // LEAVE CONVERSATION
+  socket.on("leave_conversation", (conversationId) => {
+    if (mongoose.isValidObjectId(conversationId)) {
+      socket.leave(conversationId.toString());
+    }
+  });
+
+  // DISCONNECT
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.user.userId);
+  });
+});
+
+
 
 app.use(
   "/uploads",
@@ -198,6 +332,7 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/social-media", socialMediaRoutes);
 app.use("/api/dashboard-preferences", dashboardPreferenceRoutes);
 app.use("/api/suppliers-vendors", supplierVendorRoutes);
+app.use("/api/internal-communication", internalCommunicationRoutes);
 
 // painter
 app.use("/api/painter", painterDashboardRoutes);
@@ -305,8 +440,9 @@ app.get("/api/health", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+app.set("io", io);
 
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
   startBirthdayReminderService();
 });
