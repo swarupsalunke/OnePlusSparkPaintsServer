@@ -31,7 +31,21 @@ router.get("/:conversationId/messages", authMiddleware, getMessages);
 router.post(
   "/messages",
   authMiddleware,
-  uploadChatAttachment.single("file"),
+  (req, res, next) => {
+    uploadChatAttachment.single("file")(req, res, (err) => {
+      if (err) {
+        console.error("CHAT UPLOAD ERROR:", err);
+        console.error("CHAT UPLOAD STACK:", err.stack);
+
+        return res.status(500).json({
+          success: false,
+          message: err.message,
+        });
+      }
+
+      next();
+    });
+  },
   sendMessage
 );
 
