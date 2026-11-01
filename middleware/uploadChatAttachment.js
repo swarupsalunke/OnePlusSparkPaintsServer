@@ -16,17 +16,26 @@ const allowedExtensions = [
   ".txt",
 ];
 
+// const storage = new CloudinaryStorage({
+//   cloudinary,
+//   params: {
+//     folder: "oneplussparkpaints/chat-attachments",
+//     resource_type: "raw",
+//     allowed_formats: [
+//       "jpg", "jpeg", "png", "webp",
+//       "pdf", "doc", "docx",
+//       "xls", "xlsx", "txt",
+//     ],
+//   },
+// });
+
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: {
+  params: async (req, file) => ({
     folder: "oneplussparkpaints/chat-attachments",
     resource_type: "raw",
-    allowed_formats: [
-      "jpg", "jpeg", "png", "webp",
-      "pdf", "doc", "docx",
-      "xls", "xlsx", "txt",
-    ],
-  },
+    public_id: `${Date.now()}-${path.parse(file.originalname).name}`,
+  }),
 });
 
 
