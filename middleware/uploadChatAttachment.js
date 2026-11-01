@@ -20,7 +20,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "oneplussparkpaints/chat-attachments",
-    resource_type: "auto",
+    resource_type: "raw",
     allowed_formats: [
       "jpg", "jpeg", "png", "webp",
       "pdf", "doc", "docx",
