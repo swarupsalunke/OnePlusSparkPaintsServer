@@ -34,7 +34,7 @@ const storage = new CloudinaryStorage({
   params: async (req, file) => ({
     folder: "oneplussparkpaints/chat-attachments",
     resource_type: "raw",
-    public_id: `${Date.now()}-${path.parse(file.originalname).name}`,
+    public_id: `${Date.now()}-${path.parse(file.originalname).name}${path.extname(file.originalname).toLowerCase()}`,
   }),
 });
 
