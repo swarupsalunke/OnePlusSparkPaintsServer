@@ -11,6 +11,7 @@ const {
   markMessageAsRead,
   editMessage,
   deleteMessage,
+  getChatContacts,
 } = require("../../controllers/superadmin/internalCommunicationController");
 
 const authMiddleware = require("../../middleware/authMiddleware");
@@ -32,6 +33,8 @@ router.post(
   authMiddleware,
   getOrCreateDirectConversation
 );
+
+router.get("/contacts", authMiddleware, getChatContacts);
 
 // GET MESSAGES
 router.get(

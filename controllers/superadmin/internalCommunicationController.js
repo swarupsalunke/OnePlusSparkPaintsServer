@@ -20,6 +20,59 @@ const getCurrentUser = async (req) => {
 const makeDepartmentKey = (department) => {
     return department.trim().toLowerCase();
 };
+// =====================================
+// HELPER: ROLE-BASED DIRECT CHAT ACCESS
+// =====================================
+
+const LIMITED_CHAT_ROLES = [
+    "PAINTER",
+    "DEALER",
+    "SALES_EXECUTIVE",
+];
+
+const canDirectChat = (user, targetUser) => {
+    if (!user || !targetUser) return false;
+
+    // SUPER ADMIN can chat with everyone
+    if (
+        user.role === "SUPER_ADMIN" ||
+        targetUser.role === "SUPER_ADMIN"
+    ) {
+        return true;
+    }
+
+    // Painter / Dealer / Sales Executive -> Assigned Manager
+    if (
+        LIMITED_CHAT_ROLES.includes(user.role) &&
+        targetUser.role === "MANAGER" &&
+        user.reportingTo?.toString() === targetUser._id.toString()
+    ) {
+        return true;
+    }
+
+    // Assigned Manager -> Painter / Dealer / Sales Executive
+    if (
+        user.role === "MANAGER" &&
+        LIMITED_CHAT_ROLES.includes(targetUser.role) &&
+        targetUser.reportingTo?.toString() === user._id.toString()
+    ) {
+        return true;
+    }
+
+    // Preserve existing behavior for other roles
+    if (
+        !LIMITED_CHAT_ROLES.includes(user.role) &&
+        !LIMITED_CHAT_ROLES.includes(targetUser.role)
+    ) {
+        return true;
+    }
+
+    return false;
+};
+
+// =====================================
+// HELPER: CHECK CONVERSATION ACCESS
+// =====================================
 
 // =====================================
 // HELPER: CHECK CONVERSATION ACCESS
@@ -28,21 +81,41 @@ const makeDepartmentKey = (department) => {
 const hasConversationAccess = async (conversation, user) => {
     if (!conversation || !user) return false;
 
-    // SUPER ADMIN / OWNER HAS FULL VISIBILITY
     if (user.role === "SUPER_ADMIN") {
         return true;
     }
 
-    // DIRECT CHAT ACCESS
     if (conversation.type === "DIRECT") {
-        return conversation.participants.some(
+        const isParticipant = conversation.participants.some(
             (participant) =>
-                participant.toString() === user._id.toString()
+                (participant._id || participant).toString() ===
+                user._id.toString()
         );
+
+        if (!isParticipant) return false;
+
+        // Load both participants to verify role-based permission
+        const participants = await User.find({
+            _id: { $in: conversation.participants },
+            status: "ACTIVE",
+        });
+
+        if (participants.length !== 2) return false;
+
+        const otherUser = participants.find(
+            (participant) =>
+                participant._id.toString() !== user._id.toString()
+        );
+
+        return canDirectChat(user, otherUser);
     }
 
-    // DEPARTMENT CHAT ACCESS
     if (conversation.type === "DEPARTMENT") {
+        // Painter, Dealer and Sales cannot access department chats
+        if (LIMITED_CHAT_ROLES.includes(user.role)) {
+            return false;
+        }
+
         return (
             user.department &&
             makeDepartmentKey(user.department) ===
@@ -91,8 +164,11 @@ exports.getConversations = async (req, res) => {
             filter.$or = conditions;
         }
 
-        const conversations = await Conversation.find(filter)
-            .populate("participants", "name userId role department profilePicture status")
+        let conversations = await Conversation.find(filter)
+            .populate(
+                "participants",
+                "name userId role department profilePicture status reportingTo"
+            )
             .populate({
                 path: "lastMessage",
                 populate: {
@@ -102,6 +178,22 @@ exports.getConversations = async (req, res) => {
             })
             .populate("createdBy", "name userId")
             .sort({ updatedAt: -1 });
+
+        // Verify access for every conversation
+        const allowedConversations = [];
+
+        for (const conversation of conversations) {
+            const allowed = await hasConversationAccess(
+                conversation,
+                user
+            );
+
+            if (allowed) {
+                allowedConversations.push(conversation);
+            }
+        }
+
+        conversations = allowedConversations;
 
         return res.status(200).json({
             success: true,
@@ -196,6 +288,43 @@ exports.getDepartmentConversation = async (req, res) => {
 };
 
 // =====================================
+// GET ALLOWED CHAT CONTACTS
+// =====================================
+
+exports.getChatContacts = async (req, res) => {
+    try {
+        const user = await getCurrentUser(req);
+
+        if (!user || user.status !== "ACTIVE") {
+            return res.status(403).json({
+                success: false,
+                message: "Active user not found",
+            });
+        }
+
+        const users = await User.find({
+            status: "ACTIVE",
+            _id: { $ne: user._id },
+        }).select("name userId role department profilePicture reportingTo");
+
+        const allowedContacts = users.filter((targetUser) =>
+            canDirectChat(user, targetUser)
+        );
+
+        return res.status(200).json({
+            success: true,
+            count: allowedContacts.length,
+            users: allowedContacts,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// =====================================
 // 3. CREATE OR GET DIRECT CHAT
 // =====================================
 
@@ -235,6 +364,14 @@ exports.getOrCreateDirectConversation = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Target user not found or inactive",
+            });
+        }
+
+        // Check role-based direct chat permission
+        if (!canDirectChat(user, targetUser)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not allowed to chat with this user",
             });
         }
 
@@ -516,14 +653,14 @@ exports.sendMessage = async (req, res) => {
             data: populatedMessage,
         });
     } catch (error) {
-  console.error("Send Message Error:", error);
-  console.error("Error Details:", error.stack);
+        console.error("Send Message Error:", error);
+        console.error("Error Details:", error.stack);
 
-  return res.status(500).json({
-    success: false,
-    message: "Unable to send message.",
-  });
-}
+        return res.status(500).json({
+            success: false,
+            message: "Unable to send message.",
+        });
+    }
 };
 
 
