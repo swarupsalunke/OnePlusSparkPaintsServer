@@ -573,6 +573,13 @@ exports.sendMessage = async (req, res) => {
 
         // Cloudinary uploaded file
         if (req.file) {
+            console.log("CHAT FILE UPLOAD:", {
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+    path: req.file.path,
+    filename: req.file.filename,
+});
             messageAttachments.push({
                 fileName: req.file.originalname,
                 fileUrl: req.file.path,
