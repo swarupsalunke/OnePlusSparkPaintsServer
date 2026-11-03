@@ -19,6 +19,7 @@ const {
   exportUsers,
   downloadUserTemplate,
   previewUsersImport,
+  confirmUsersImport,
 } = require("../../controllers/superadmin/userController");
 
 const uploadImportCsv = multer({
@@ -119,6 +120,13 @@ router.post(
   roleMiddleware("SUPER_ADMIN"),
   uploadImportCsv.single("file"),
   previewUsersImport
+);
+
+router.post(
+  "/import-confirm",
+  authMiddleware,
+  roleMiddleware("SUPER_ADMIN"),
+  confirmUsersImport
 );
 
 // ==========================================

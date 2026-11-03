@@ -1805,6 +1805,262 @@ const previewUsersImport = async (req, res) => {
     });
   }
 };
+// ==========================================
+// CONFIRM USERS CSV IMPORT
+// POST /api/users/import-confirm
+// ==========================================
+
+const confirmUsersImport = async (req, res) => {
+  try {
+    const { users } = req.body;
+
+    if (!Array.isArray(users) || users.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No users provided for import",
+      });
+    }
+
+    const roleOptions = User.schema.path("role").enumValues;
+    const statusOptions = User.schema.path("status").enumValues;
+
+    const seenUserIds = new Set();
+    const seenEmails = new Set();
+    const seenMobiles = new Set();
+
+    const createdUsers = [];
+    const failedUsers = [];
+
+    for (const row of users) {
+      const {
+        rowNumber,
+        user = {},
+        password,
+      } = row || {};
+
+      const {
+        userId,
+        name,
+        email,
+        mobile,
+        role,
+        department,
+        reportingTo,
+        loginType,
+        status,
+      } = user;
+
+      const errors = [];
+
+      const normalizedUserId = String(userId || "").trim();
+      const normalizedName = String(name || "").trim();
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const normalizedMobile = String(mobile || "").trim();
+      const normalizedRole = String(role || "").trim().toUpperCase();
+      const normalizedStatus = String(status || "ACTIVE").trim().toUpperCase();
+
+      // Required fields
+      if (
+        !normalizedUserId ||
+        !normalizedName ||
+        !normalizedEmail ||
+        !normalizedMobile ||
+        !password ||
+        !normalizedRole
+      ) {
+        errors.push(
+          "User ID, name, email, mobile, role and password are required"
+        );
+      }
+
+      // Email validation
+      if (
+        normalizedEmail &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+      ) {
+        errors.push("Invalid email format");
+      }
+
+      // Role validation
+      if (
+        normalizedRole &&
+        !roleOptions.includes(normalizedRole)
+      ) {
+        errors.push("Invalid role");
+      }
+
+      // Status validation
+      if (!statusOptions.includes(normalizedStatus)) {
+        errors.push("Invalid status");
+      }
+
+      // Duplicate checks within current import request
+      if (normalizedUserId && seenUserIds.has(normalizedUserId)) {
+        errors.push("Duplicate User ID in import");
+      }
+
+      if (normalizedEmail && seenEmails.has(normalizedEmail)) {
+        errors.push("Duplicate email in import");
+      }
+
+      if (normalizedMobile && seenMobiles.has(normalizedMobile)) {
+        errors.push("Duplicate mobile number in import");
+      }
+
+      seenUserIds.add(normalizedUserId);
+      seenEmails.add(normalizedEmail);
+      seenMobiles.add(normalizedMobile);
+
+      // Recheck duplicates in database
+      if (normalizedUserId) {
+        const existingUserId = await User.findOne({
+          userId: normalizedUserId,
+        });
+
+        if (existingUserId) {
+          errors.push("User ID already exists");
+        }
+      }
+
+      if (normalizedEmail) {
+        const existingEmail = await User.findOne({
+          email: normalizedEmail,
+        });
+
+        if (existingEmail) {
+          errors.push("Email already exists");
+        }
+      }
+
+      if (normalizedMobile) {
+        const existingMobile = await User.findOne({
+          mobile: normalizedMobile,
+        });
+
+        if (existingMobile) {
+          errors.push("Mobile number already exists");
+        }
+      }
+
+      if (errors.length > 0) {
+        failedUsers.push({
+          rowNumber,
+          userId: normalizedUserId,
+          name: normalizedName,
+          errors,
+        });
+
+        continue;
+      }
+
+      let createdUser = null;
+
+      try {
+        // Hash manually entered password
+        const hashedPassword = await bcrypt.hash(
+          password,
+          10
+        );
+
+        // Create user
+        createdUser = await User.create({
+          userId: normalizedUserId,
+          name: normalizedName,
+          email: normalizedEmail,
+          mobile: normalizedMobile,
+          password: hashedPassword,
+          role: normalizedRole,
+
+          department: department || "",
+          reportingTo: reportingTo || "",
+          loginType: loginType || "",
+          status: normalizedStatus,
+
+          profilePicture: "",
+          dateOfBirth: null,
+          gender: "",
+
+          address: "",
+          addressLine1: "",
+          addressLine2: "",
+          country: "",
+          state: "",
+          district: "",
+          city: "",
+          pinCode: "",
+
+          permissions: [],
+          notes: "",
+          kyc: {},
+        });
+
+        // Create Painter profile when role is PAINTER
+        if (normalizedRole === "PAINTER") {
+          await PainterProfile.create({
+            painterId: createdUser._id,
+            name: normalizedName,
+            mobile: normalizedMobile,
+            email: normalizedEmail,
+            profileImage: "",
+            city: "",
+            serviceableArea: "",
+          });
+        }
+
+        createdUsers.push({
+          rowNumber,
+          userId: createdUser.userId,
+          name: createdUser.name,
+          email: createdUser.email,
+          role: createdUser.role,
+        });
+
+      } catch (error) {
+        // Avoid keeping a User record if PainterProfile creation fails
+        if (createdUser && normalizedRole === "PAINTER") {
+          await User.deleteOne({
+            _id: createdUser._id,
+          }).catch(() => {});
+        }
+
+        let message = "Failed to create user";
+
+        if (error.code === 11000) {
+          message = "Duplicate User ID, email or mobile number";
+        } else if (error.name === "ValidationError") {
+          message = error.message;
+        }
+
+        failedUsers.push({
+          rowNumber,
+          userId: normalizedUserId,
+          name: normalizedName,
+          errors: [message],
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "CSV import process completed",
+      summary: {
+        totalRows: users.length,
+        created: createdUsers.length,
+        failed: failedUsers.length,
+      },
+      createdUsers,
+      failedUsers,
+    });
+
+  } catch (error) {
+    console.error("Confirm Users Import Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to confirm users import",
+    });
+  }
+};
 
 // ==========================================
 // EXPORT USERS - CSV
