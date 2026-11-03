@@ -117,34 +117,52 @@ const userSchema = new mongoose.Schema(
     // ROLE & REPORTING
     // =========================
 
-    role: {
-      type: String,
+   
 
-      enum: [
-        "SUPER_ADMIN",
-        "DIRECTOR",
-        "MANAGER",
-        "SALES_EXECUTIVE",
-        "ACCOUNTANT",
-        "STORE_CASHIER",
-        "DEALER",
-        "PAINTER",
-      ],
+   // =========================
+// ROLE & REPORTING
+// =========================
 
-      required: true,
-    },
+role: {
+  type: String,
 
-    reportingTo: {
-      type: String,
-      default: "",
-      trim: true,
-    },
+  enum: [
+    "SUPER_ADMIN",
+    "DIRECTOR",
 
-    department: {
-      type: String,
-      default: "",
-      trim: true,
-    },
+    // Manager Roles
+    "SALES_MANAGER",
+    "PRODUCTION_MANAGER",
+    "ACCOUNT_MANAGER",
+    "MARKETING_MANAGER",
+    "STORE_MANAGER",
+    "HR_ADMIN_EXECUTIVE",
+
+    // Existing Roles
+    "SALES_EXECUTIVE",
+    "ACCOUNTANT",
+    "STORE_CASHIER",
+    "DEALER",
+    "PAINTER",
+
+    // Legacy role - existing database compatibility
+    "MANAGER",
+  ],
+
+  required: true,
+},
+
+reportingTo: {
+  type: String,
+  default: "",
+  trim: true,
+},
+
+department: {
+  type: String,
+  default: "",
+  trim: true,
+},
 
     // =========================
     // ACCOUNT DETAILS

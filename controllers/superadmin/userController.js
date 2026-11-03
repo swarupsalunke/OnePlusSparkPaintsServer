@@ -503,6 +503,57 @@ const updateUser = async (req, res) => {
         message: "User not found",
       });
     }
+    // PREVENT DEACTIVATION OF ACTIVE SUPER ADMIN
+    if (
+      user.role === "SUPER_ADMIN" &&
+      user.status === "ACTIVE" &&
+      req.body.status !== undefined &&
+      req.body.status !== "ACTIVE"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Active Super Admin cannot be deactivated or blocked",
+      });
+    }
+
+    // ONLY SUPER ADMIN CAN CHANGE USER PERMISSIONS
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, "permissions") &&
+      req.user.role !== "SUPER_ADMIN"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Super Admin can change user permissions",
+      });
+    }
+
+    // ONLY SUPER ADMIN CAN CHANGE USER ROLE
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, "role") &&
+      req.body.role !== user.role &&
+      req.user.role !== "SUPER_ADMIN"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Super Admin can change user roles",
+      });
+    }
+
+    // ==========================================
+    // PREVENT DEACTIVATION OF ACTIVE SUPER ADMIN
+    // ==========================================
+
+    if (
+      user.role === "SUPER_ADMIN" &&
+      user.status === "ACTIVE" &&
+      status !== undefined &&
+      status !== "ACTIVE"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Active Super Admin cannot be deactivated or blocked",
+      });
+    }
 
     // ==========================================
     // CHECK USER ID UNIQUENESS
@@ -1518,6 +1569,75 @@ const getUserStats = async (req, res) => {
 };
 
 // ==========================================
+// EXPORT USERS - CSV
+// ONLY SAFE USER DETAILS
+// ==========================================
+
+const exportUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select(
+        "userId name email mobile role department reportingTo loginType status createdAt"
+      )
+      .populate("reportingTo", "name userId")
+      .lean();
+
+    const headers = [
+      "User ID",
+      "Name",
+      "Email",
+      "Mobile",
+      "Role",
+      "Department",
+      "Reporting To",
+      "Login Type",
+      "Status",
+      "Created At",
+    ];
+
+    const escapeCSV = (value) => {
+      const text = value == null ? "" : String(value);
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const rows = users.map((user) => [
+      user.userId,
+      user.name,
+      user.email,
+      user.mobile,
+      user.role,
+      user.department,
+      user.reportingTo?.name || "",
+      user.loginType,
+      user.status,
+      user.createdAt
+        ? new Date(user.createdAt).toLocaleDateString("en-IN")
+        : "",
+    ]);
+
+    const csv = [
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) => row.map(escapeCSV).join(",")),
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="users-export.csv"'
+    );
+
+    return res.status(200).send("\uFEFF" + csv);
+  } catch (error) {
+    console.error("Export Users Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to export users",
+    });
+  }
+};
+
+// ==========================================
 // EXPORTS
 // ==========================================
 
@@ -1531,5 +1651,6 @@ module.exports = {
   approveKyc,
   rejectKyc,
   requestKycCorrection,
+  exportUsers,
   getUserStats,
 };

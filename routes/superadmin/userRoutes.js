@@ -15,6 +15,7 @@ const {
   approveKyc,
   rejectKyc,
   requestKycCorrection,
+  exportUsers,
 } = require("../../controllers/superadmin/userController");
 
 const authMiddleware = require("../../middleware/authMiddleware");
@@ -27,14 +28,22 @@ const roleMiddleware = require("../../middleware/roleMiddleware");
 router.post(
   "/",
   authMiddleware,
-  roleMiddleware(
-    "SUPER_ADMIN",
-    "DIRECTOR",
-    "MANAGER"
-  ),
+  roleMiddleware("SUPER_ADMIN"),
   uploadProfile.single("profilePicture"),
   createUser
 );
+
+// router.post(
+//   "/",
+//   authMiddleware,
+//   roleMiddleware(
+//     "SUPER_ADMIN",
+//     "DIRECTOR",
+//     "MANAGER"
+//   ),
+//   uploadProfile.single("profilePicture"),
+//   createUser
+// );
 
 // ==========================================
 // GET ALL USERS
@@ -68,6 +77,13 @@ router.get(
     "MANAGER"
   ),
   getUserStats
+);
+
+router.get(
+  "/export",
+  authMiddleware,
+  roleMiddleware("SUPER_ADMIN"),
+  exportUsers
 );
 
 // ==========================================
