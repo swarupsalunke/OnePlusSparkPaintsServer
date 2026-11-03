@@ -1626,7 +1626,12 @@ const previewUsersImport = async (req, res) => {
       const parsedRows = [];
 
       Readable.from([req.file.buffer])
-        .pipe(csv())
+        .pipe(
+          csv({
+            mapHeaders: ({ header }) =>
+              header.replace(/^\uFEFF/, "").trim(),
+          })
+        )
         .on("data", (row) => parsedRows.push(row))
         .on("end", () => resolve(parsedRows))
         .on("error", reject);
@@ -1651,7 +1656,11 @@ const previewUsersImport = async (req, res) => {
       "Status",
     ];
 
-    const uploadedHeaders = Object.keys(rows[0]);
+    const normalizedHeaders = Object.keys(results[0] || {}).map(
+      (header) => header.replace(/^\uFEFF/, "").trim()
+    );
+
+    const uploadedHeaders = Object.keys(rows[0] || {});
 
     const missingHeaders = requiredHeaders.filter(
       (header) => !uploadedHeaders.includes(header)
