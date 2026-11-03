@@ -2149,4 +2149,5 @@ module.exports = {
   exportUsers,
   getUserStats,
   previewUsersImport,
+  confirmUsersImport,
 };
