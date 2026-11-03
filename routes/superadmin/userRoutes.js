@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 
 const router = express.Router();
 
@@ -17,7 +18,25 @@ const {
   requestKycCorrection,
   exportUsers,
   downloadUserTemplate,
+  previewUsersImport,
 } = require("../../controllers/superadmin/userController");
+
+const uploadImportCsv = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype === "text/csv" ||
+      file.originalname.toLowerCase().endsWith(".csv")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only CSV files are allowed"));
+    }
+  },
+});
 
 const authMiddleware = require("../../middleware/authMiddleware");
 const roleMiddleware = require("../../middleware/roleMiddleware");
@@ -92,6 +111,14 @@ router.get(
   authMiddleware,
   roleMiddleware("SUPER_ADMIN"),
   exportUsers
+);
+
+router.post(
+  "/import-preview",
+  authMiddleware,
+  roleMiddleware("SUPER_ADMIN"),
+  uploadImportCsv.single("file"),
+  previewUsersImport
 );
 
 // ==========================================

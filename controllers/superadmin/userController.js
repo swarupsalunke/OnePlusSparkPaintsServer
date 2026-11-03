@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const csv = require("csv-parser");
+const { Readable } = require("stream");
 const User = require("../../models/superadmin/User");
 const Order = require("../../models/superadmin/Order");
 const RewardTransaction = require("../../models/superadmin/RewardTransaction");
@@ -1606,6 +1609,200 @@ const downloadUserTemplate = async (req, res) => {
 };
 
 // ==========================================
+// PREVIEW USERS CSV
+// POST /api/users/import-preview
+// ==========================================
+
+const previewUsersImport = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload a CSV file",
+      });
+    }
+
+    const rows = await new Promise((resolve, reject) => {
+      const parsedRows = [];
+
+      Readable.from([req.file.buffer])
+        .pipe(csv())
+        .on("data", (row) => parsedRows.push(row))
+        .on("end", () => resolve(parsedRows))
+        .on("error", reject);
+    });
+
+    if (!rows.length) {
+      return res.status(400).json({
+        success: false,
+        message: "CSV file is empty",
+      });
+    }
+
+    const requiredHeaders = [
+      "User ID",
+      "Name",
+      "Email",
+      "Mobile",
+      "Role",
+      "Department",
+      "Reporting To",
+      "Login Type",
+      "Status",
+    ];
+
+    const uploadedHeaders = Object.keys(rows[0]);
+
+    const missingHeaders = requiredHeaders.filter(
+      (header) => !uploadedHeaders.includes(header)
+    );
+
+    if (missingHeaders.length) {
+      return res.status(400).json({
+        success: false,
+        message: "CSV headers are missing",
+        missingHeaders,
+      });
+    }
+
+    const roleOptions = User.schema.path("role").enumValues;
+    const statusOptions = User.schema.path("status").enumValues;
+
+    const userIds = [];
+    const emails = [];
+    const mobiles = [];
+
+    const normalizedRows = rows.map((row, index) => {
+      const user = {
+        userId: (row["User ID"] || "").trim(),
+        name: (row["Name"] || "").trim(),
+        email: (row["Email"] || "").trim().toLowerCase(),
+        mobile: (row["Mobile"] || "").trim(),
+        role: (row["Role"] || "").trim().toUpperCase(),
+        department: (row["Department"] || "").trim(),
+        reportingTo: (row["Reporting To"] || "").trim(),
+        loginType: (row["Login Type"] || "").trim(),
+        status: (row["Status"] || "").trim().toUpperCase(),
+      };
+
+      userIds.push(user.userId);
+      emails.push(user.email);
+      mobiles.push(user.mobile);
+
+      return {
+        rowNumber: index + 2,
+        user,
+        errors: [],
+      };
+    });
+
+    const existingUsers = await User.find({
+      $or: [
+        { userId: { $in: userIds.filter(Boolean) } },
+        { email: { $in: emails.filter(Boolean) } },
+        { mobile: { $in: mobiles.filter(Boolean) } },
+      ],
+    })
+      .select("userId email mobile")
+      .lean();
+
+    const existingUserIds = new Set(
+      existingUsers.map((u) => u.userId)
+    );
+
+    const existingEmails = new Set(
+      existingUsers.map((u) => u.email?.toLowerCase())
+    );
+
+    const existingMobiles = new Set(
+      existingUsers.map((u) => u.mobile)
+    );
+
+    const seenUserIds = new Set();
+    const seenEmails = new Set();
+    const seenMobiles = new Set();
+
+    normalizedRows.forEach(({ user, errors }) => {
+      if (!user.userId) errors.push("User ID is required");
+      if (!user.name) errors.push("Name is required");
+      if (!user.email) errors.push("Email is required");
+      if (!user.mobile) errors.push("Mobile is required");
+      if (!user.role) errors.push("Role is required");
+
+      if (
+        user.email &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)
+      ) {
+        errors.push("Invalid email format");
+      }
+
+      if (user.role && !roleOptions.includes(user.role)) {
+        errors.push("Invalid role");
+      }
+
+      if (user.status && !statusOptions.includes(user.status)) {
+        errors.push("Invalid status");
+      }
+
+      if (user.userId && existingUserIds.has(user.userId)) {
+        errors.push("User ID already exists");
+      }
+
+      if (user.email && existingEmails.has(user.email)) {
+        errors.push("Email already exists");
+      }
+
+      if (user.mobile && existingMobiles.has(user.mobile)) {
+        errors.push("Mobile number already exists");
+      }
+
+      if (user.userId && seenUserIds.has(user.userId)) {
+        errors.push("Duplicate User ID in CSV");
+      }
+
+      if (user.email && seenEmails.has(user.email)) {
+        errors.push("Duplicate Email in CSV");
+      }
+
+      if (user.mobile && seenMobiles.has(user.mobile)) {
+        errors.push("Duplicate Mobile in CSV");
+      }
+
+      if (user.userId) seenUserIds.add(user.userId);
+      if (user.email) seenEmails.add(user.email);
+      if (user.mobile) seenMobiles.add(user.mobile);
+    });
+
+    const validRows = normalizedRows.filter(
+      (row) => row.errors.length === 0
+    );
+
+    const invalidRows = normalizedRows.filter(
+      (row) => row.errors.length > 0
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "CSV preview completed",
+      summary: {
+        totalRows: rows.length,
+        validRows: validRows.length,
+        invalidRows: invalidRows.length,
+      },
+      validRows,
+      invalidRows,
+    });
+  } catch (error) {
+    console.error("Preview Users Import Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to preview CSV file",
+    });
+  }
+};
+
+// ==========================================
 // EXPORT USERS - CSV
 // ONLY SAFE USER DETAILS
 // ==========================================
@@ -1691,4 +1888,5 @@ module.exports = {
   downloadUserTemplate,
   exportUsers,
   getUserStats,
+  previewUsersImport,
 };
