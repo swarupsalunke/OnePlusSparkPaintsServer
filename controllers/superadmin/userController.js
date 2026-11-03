@@ -1569,6 +1569,43 @@ const getUserStats = async (req, res) => {
 };
 
 // ==========================================
+// DOWNLOAD USER IMPORT TEMPLATE
+// ==========================================
+
+const downloadUserTemplate = async (req, res) => {
+  try {
+    const headers = [
+      "User ID",
+      "Name",
+      "Email",
+      "Mobile",
+      "Role",
+      "Department",
+      "Reporting To",
+      "Login Type",
+      "Status",
+    ];
+
+    const csv = headers.map((value) => `"${value}"`).join(",");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="users-import-template.csv"'
+    );
+
+    return res.status(200).send("\uFEFF" + csv);
+  } catch (error) {
+    console.error("Download User Template Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to download import template",
+    });
+  }
+};
+
+// ==========================================
 // EXPORT USERS - CSV
 // ONLY SAFE USER DETAILS
 // ==========================================
@@ -1651,6 +1688,7 @@ module.exports = {
   approveKyc,
   rejectKyc,
   requestKycCorrection,
+  downloadUserTemplate,
   exportUsers,
   getUserStats,
 };

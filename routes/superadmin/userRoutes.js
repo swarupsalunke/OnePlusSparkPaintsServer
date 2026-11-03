@@ -16,6 +16,7 @@ const {
   rejectKyc,
   requestKycCorrection,
   exportUsers,
+  downloadUserTemplate,
 } = require("../../controllers/superadmin/userController");
 
 const authMiddleware = require("../../middleware/authMiddleware");
@@ -77,6 +78,13 @@ router.get(
     "MANAGER"
   ),
   getUserStats
+);
+
+router.get(
+  "/import-template",
+  authMiddleware,
+  roleMiddleware("SUPER_ADMIN"),
+  downloadUserTemplate
 );
 
 router.get(
