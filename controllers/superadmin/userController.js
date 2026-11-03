@@ -1656,10 +1656,6 @@ const previewUsersImport = async (req, res) => {
       "Status",
     ];
 
-    const normalizedHeaders = Object.keys(results[0] || {}).map(
-      (header) => header.replace(/^\uFEFF/, "").trim()
-    );
-
     const uploadedHeaders = Object.keys(rows[0] || {});
 
     const missingHeaders = requiredHeaders.filter(
@@ -1673,7 +1669,6 @@ const previewUsersImport = async (req, res) => {
         missingHeaders,
       });
     }
-
     const roleOptions = User.schema.path("role").enumValues;
     const statusOptions = User.schema.path("status").enumValues;
 
