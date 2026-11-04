@@ -1,6 +1,7 @@
 const PainterBarcodeScan = require("../../models/painter/PainterBarcodeScan");
 const Product = require("../../models/superadmin/Product");
 const RewardTransaction = require("../../models/superadmin/RewardTransaction");
+const recordUserActivity = require("../../utils/recordUserActivity");
 
 // POST /api/painter/barcode-scan
 const verifyBarcodeScan = async (req, res) => {
@@ -76,16 +77,16 @@ const verifyBarcodeScan = async (req, res) => {
         scan: duplicateScan,
         product: product
           ? {
-              id: product._id,
-              productName: product.productName,
-              sku: product.sku,
-              barcode: product.barcode,
-              category: product.category,
-              subCategory: product.subCategory,
-              brand: product.brand,
-              packingSize: product.packingSize,
-              mrp: product.mrp,
-            }
+            id: product._id,
+            productName: product.productName,
+            sku: product.sku,
+            barcode: product.barcode,
+            category: product.category,
+            subCategory: product.subCategory,
+            brand: product.brand,
+            packingSize: product.packingSize,
+            mrp: product.mrp,
+          }
           : null,
         rewardPoints,
       });
@@ -127,6 +128,19 @@ const verifyBarcodeScan = async (req, res) => {
       scanCode: code,
       scanType,
       scanStatus: "VALID",
+    });
+
+    await recordUserActivity({
+      userId: painterId,
+      role: "PAINTER",
+      activityType: "PAINTER_QR_SCAN",
+      referenceId: scan._id,
+      metadata: {
+        scanType,
+        scanCode: code,
+        productId: product._id,
+        productName: product.productName,
+      },
     });
 
     return res.status(200).json({
