@@ -236,10 +236,11 @@ const sendForgotPasswordOTP = async (req, res) => {
       });
     }
 
-    if (user.status !== "ACTIVE") {
+    // Allow only ACTIVE and INACTIVE users to login
+    if (!["ACTIVE", "INACTIVE"].includes(user.status)) {
       return res.status(403).json({
         success: false,
-        message: "Your account is not active",
+        message: "Your account is not allowed to login",
       });
     }
 
