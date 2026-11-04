@@ -33,11 +33,9 @@ const recordUserActivity = async ({
     });
 
     // Automatically reactivate only auto-inactive users
-    if (
-      user.status === "INACTIVE" &&
-      user.isManuallyInactive !== true
-    ) {
+    if (user.status === "INACTIVE") {
       user.status = "ACTIVE";
+      user.isManuallyInactive = false;
       await user.save();
     }
 
