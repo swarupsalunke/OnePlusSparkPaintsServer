@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Collection = require("../../models/salesExecutive/Collection");
 const SalesOrder = require("../../models/salesExecutive/SalesOrder");
+const recordUserActivity = require("../../utils/recordUserActivity");
 
 const generateCollectionId = () =>
     `COL-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
