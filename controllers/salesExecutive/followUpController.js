@@ -43,17 +43,19 @@ exports.createFollowUp = async (req, res) => {
     });
 
     await recordUserActivity({
-  userId: req.user.userId,
-  role: "SALES_EXECUTIVE",
-  activityType: "SALES_FOLLOWUP_CREATE",
-  referenceId: followUp._id,
-  metadata: {
-    customerName: followUp.customerName,
-    customerType: followUp.customerType,
-    reason: followUp.reason,
-    status: followUp.status,
-  },
-});
+      userId: followUp.salesExecutiveId,
+      role: "SALES_EXECUTIVE",
+      activityType: "SALES_FOLLOWUP_CREATE",
+      referenceId: followUp._id,
+      metadata: {
+        customerName: followUp.customerName,
+        customerType: followUp.customerType,
+        reason: followUp.reason,
+        status: followUp.status,
+      },
+    });
+
+
 
     return res.status(201).json({
       success: true,
@@ -117,7 +119,7 @@ exports.getFollowUpById = async (req, res) => {
     if (
       (req.user?._id || req.user?.id) &&
       String(followUp.salesExecutiveId) !==
-        String(req.user._id || req.user.id)
+      String(req.user._id || req.user.id)
     ) {
       return res.status(403).json({
         success: false,
@@ -155,7 +157,7 @@ exports.updateFollowUp = async (req, res) => {
     if (
       (req.user?._id || req.user?.id) &&
       String(followUp.salesExecutiveId) !==
-        String(req.user._id || req.user.id)
+      String(req.user._id || req.user.id)
     ) {
       return res.status(403).json({
         success: false,
@@ -187,15 +189,15 @@ exports.updateFollowUp = async (req, res) => {
     await followUp.save();
 
     await recordUserActivity({
-  userId: req.user.userId,
-  role: "SALES_EXECUTIVE",
-  activityType: "SALES_FOLLOWUP_UPDATE",
-  referenceId: followUp._id,
-  metadata: {
-    customerName: followUp.customerName,
-    status: followUp.status,
-  },
-});
+      userId: followUp.salesExecutiveId,
+      role: "SALES_EXECUTIVE",
+      activityType: "SALES_FOLLOWUP_UPDATE",
+      referenceId: followUp._id,
+      metadata: {
+        customerName: followUp.customerName,
+        status: followUp.status,
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -244,7 +246,7 @@ exports.updateFollowUpStatus = async (req, res) => {
     if (
       (req.user?._id || req.user?.id) &&
       String(followUp.salesExecutiveId) !==
-        String(req.user._id || req.user.id)
+      String(req.user._id || req.user.id)
     ) {
       return res.status(403).json({
         success: false,
@@ -261,16 +263,16 @@ exports.updateFollowUpStatus = async (req, res) => {
     await followUp.save();
 
     await recordUserActivity({
-  userId: req.user.userId,
-  role: "SALES_EXECUTIVE",
-  activityType: "SALES_FOLLOWUP_STATUS_UPDATE",
-  referenceId: followUp._id,
-  metadata: {
-    customerName: followUp.customerName,
-    status: followUp.status,
-    nextFollowUpDate: followUp.nextFollowUpDate,
-  },
-});
+      userId: followUp.salesExecutiveId,
+      role: "SALES_EXECUTIVE",
+      activityType: "SALES_FOLLOWUP_STATUS_UPDATE",
+      referenceId: followUp._id,
+      metadata: {
+        customerName: followUp.customerName,
+        status: followUp.status,
+        nextFollowUpDate: followUp.nextFollowUpDate,
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -303,7 +305,7 @@ exports.deleteFollowUp = async (req, res) => {
     if (
       (req.user?._id || req.user?.id) &&
       String(followUp.salesExecutiveId) !==
-        String(req.user._id || req.user.id)
+      String(req.user._id || req.user.id)
     ) {
       return res.status(403).json({
         success: false,
