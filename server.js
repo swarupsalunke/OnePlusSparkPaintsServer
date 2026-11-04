@@ -143,6 +143,9 @@ const salesExecutiveDashboardRoutes = require("./routes/salesExecutive/dashboard
 
 const { startBirthdayReminderService,
 } = require("./services/birthdayReminderService");
+const {
+  startUserInactivityService,
+} = require("./services/userInactivityService");
 
 const path = require("path");
 dotenv.config();
@@ -445,5 +448,7 @@ app.set("io", io);
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
+
   startBirthdayReminderService();
+  startUserInactivityService();
 });
