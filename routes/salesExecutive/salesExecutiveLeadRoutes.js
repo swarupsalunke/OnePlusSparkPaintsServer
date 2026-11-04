@@ -1,5 +1,6 @@
-
 const express = require("express");
+const router = express.Router();
+
 const {
   createLead,
   getAllLeads,
@@ -8,7 +9,11 @@ const {
   deleteLead,
 } = require("../../controllers/salesExecutive/salesExecutiveLeadController");
 
-const router = express.Router();
+const authMiddleware = require("../../middleware/authMiddleware");
+const roleMiddleware = require("../../middleware/roleMiddleware");
+
+// Authentication and Sales Executive role protection
+router.use(authMiddleware, roleMiddleware("SALES_EXECUTIVE"));
 
 router.post("/", createLead);
 router.get("/", getAllLeads);
