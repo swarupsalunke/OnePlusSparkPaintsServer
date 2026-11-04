@@ -30,7 +30,7 @@ exports.createFollowUp = async (req, res) => {
     }
 
     const followUp = await FollowUp.create({
-      salesExecutiveId: req.user.userId,
+      salesExecutiveId: req.user?._id || req.user?.id || null,
       customerType,
       customerName: customerName.trim(),
       phone: phone || "",
