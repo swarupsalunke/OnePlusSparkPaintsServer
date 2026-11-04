@@ -153,11 +153,7 @@ router.get(
 router.put(
   "/:id",
   authMiddleware,
-  roleMiddleware(
-    "SUPER_ADMIN",
-    "DIRECTOR",
-    "MANAGER"
-  ),
+  roleMiddleware("SUPER_ADMIN"),
   uploadProfile.single("profilePicture"),
   updateUser
 );
