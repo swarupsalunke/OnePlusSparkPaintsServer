@@ -236,6 +236,19 @@ const createCollection = async (req, res) => {
             status: "Pending",
         });
 
+        await recordUserActivity({
+    userId: salesExecutiveId,
+    role: "SALES_EXECUTIVE",
+    activityType: "COLLECTION_SUBMISSION",
+    referenceId: payment._id,
+    metadata: {
+        collectionId: payment.collectionId,
+        salesOrderId: payment.salesOrder,
+        paymentAmount: payment.paymentAmount,
+        paymentMethod: payment.paymentMethod,
+    },
+});
+
         return res.status(201).json({
             success: true,
             message:

@@ -1,4 +1,4 @@
-
+const recordUserActivity = require("../../utils/recordUserActivity");
 const SalesExecutiveLead = require("../../models/salesExecutive/SalesExecutiveLead");
 
 // Create Lead
@@ -51,6 +51,18 @@ const createLead = async (req, res) => {
   remarks,
   status,
   assignedTo,
+});
+
+await recordUserActivity({
+  userId: req.user.userId,
+  role: "SALES_EXECUTIVE",
+  activityType: "SALES_LEAD_CREATE",
+  referenceId: lead._id,
+  metadata: {
+    customerName: lead.customerName,
+    businessType: lead.businessType,
+    estimatedBusiness: lead.estimatedBusiness,
+  },
 });
 
     return res.status(201).json({

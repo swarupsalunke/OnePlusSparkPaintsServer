@@ -4,6 +4,7 @@ const SalesOrder = require("../../models/salesExecutive/SalesOrder");
 const Product = require("../../models/superadmin/Product");
 const User = require("../../models/superadmin/User");
 const SalesExecutiveLead = require("../../models/salesExecutive/SalesExecutiveLead");
+const recordUserActivity = require("../../utils/recordUserActivity");
 
 const generateOrderId = () =>
   `SEO-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -192,6 +193,20 @@ const createSalesOrder = async (req, res) => {
       trackingHistory: [{ status, date: new Date() }],
     });
 
+    if (order.status === "Submitted") {
+      await recordUserActivity({
+        userId: salesExecutiveId,
+        role: "SALES_EXECUTIVE",
+        activityType: "SALES_ORDER_SUBMISSION",
+        referenceId: order._id,
+        metadata: {
+          orderId: order.orderId,
+          dealerId: order.dealer,
+          totalAmount: order.totalAmount,
+        },
+      });
+    }
+
 
 
     const populatedOrder = await SalesOrder.findById(order._id)
@@ -319,10 +334,24 @@ const updateSalesOrderStatus = async (req, res) => {
         message: "You are not allowed to make this status change",
       });
     }
-
+    const wasDraft = order.status === "Draft";
     order.status = status;
     order.trackingHistory.push({ status, date: new Date() });
     await order.save();
+
+    if (wasDraft && status === "Submitted") {
+      await recordUserActivity({
+        userId: req.user.userId,
+        role: "SALES_EXECUTIVE",
+        activityType: "SALES_ORDER_SUBMISSION",
+        referenceId: order._id,
+        metadata: {
+          orderId: order.orderId,
+          dealerId: order.dealer,
+          totalAmount: order.totalAmount,
+        },
+      });
+    }
 
     res.status(200).json({
       success: true,
