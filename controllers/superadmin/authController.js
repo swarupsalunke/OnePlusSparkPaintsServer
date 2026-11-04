@@ -148,11 +148,12 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // 3. Check user status
-    if (user.status !== "ACTIVE") {
+
+    // Allow ACTIVE and INACTIVE users to login
+    if (["BLOCKED", "PENDING", "SUSPENDED"].includes(user.status)) {
       return res.status(403).json({
         success: false,
-        message: "Your account is not active",
+        message: "Your account is not allowed to login",
       });
     }
 
