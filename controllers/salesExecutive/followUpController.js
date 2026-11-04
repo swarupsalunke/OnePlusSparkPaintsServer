@@ -1,4 +1,5 @@
 const FollowUp = require("../../models/salesExecutive/followUpModel");
+const recordUserActivity = require("../../utils/recordUserActivity");
 
 // CREATE FOLLOW-UP
 exports.createFollowUp = async (req, res) => {
@@ -40,6 +41,19 @@ exports.createFollowUp = async (req, res) => {
       status: status || "Pending",
       nextFollowUpDate: nextFollowUpDate || "",
     });
+
+    await recordUserActivity({
+  userId: req.user.userId,
+  role: "SALES_EXECUTIVE",
+  activityType: "SALES_FOLLOWUP_CREATE",
+  referenceId: followUp._id,
+  metadata: {
+    customerName: followUp.customerName,
+    customerType: followUp.customerType,
+    reason: followUp.reason,
+    status: followUp.status,
+  },
+});
 
     return res.status(201).json({
       success: true,
@@ -172,6 +186,17 @@ exports.updateFollowUp = async (req, res) => {
 
     await followUp.save();
 
+    await recordUserActivity({
+  userId: req.user.userId,
+  role: "SALES_EXECUTIVE",
+  activityType: "SALES_FOLLOWUP_UPDATE",
+  referenceId: followUp._id,
+  metadata: {
+    customerName: followUp.customerName,
+    status: followUp.status,
+  },
+});
+
     return res.status(200).json({
       success: true,
       message: "Follow-up updated successfully",
@@ -234,6 +259,18 @@ exports.updateFollowUpStatus = async (req, res) => {
     }
 
     await followUp.save();
+
+    await recordUserActivity({
+  userId: req.user.userId,
+  role: "SALES_EXECUTIVE",
+  activityType: "SALES_FOLLOWUP_STATUS_UPDATE",
+  referenceId: followUp._id,
+  metadata: {
+    customerName: followUp.customerName,
+    status: followUp.status,
+    nextFollowUpDate: followUp.nextFollowUpDate,
+  },
+});
 
     return res.status(200).json({
       success: true,
