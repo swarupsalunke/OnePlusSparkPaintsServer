@@ -1,5 +1,7 @@
 const DealerOrder = require("../../models/dealer/DealerOrder");
 const DealerCart = require("../../models/dealer/DealerCart");
+const UserActivity = require("../../models/superadmin/UserActivity");
+const recordUserActivity = require("../../utils/recordUserActivity");
 
 const generateOrderId = () => {
   return `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -52,6 +54,17 @@ const createDealerOrder = async (req, res) => {
           date: new Date(),
         },
       ],
+    });
+
+    await recordUserActivity({
+      userId: dealerId,
+      role: "DEALER",
+      activityType: "DEALER_ORDER",
+      referenceId: order._id,
+      metadata: {
+        orderId: order.orderId,
+        totalAmount: order.totalAmount,
+      },
     });
 
     cart.items = [];

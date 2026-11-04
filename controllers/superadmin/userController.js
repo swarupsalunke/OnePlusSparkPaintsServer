@@ -720,6 +720,13 @@ const updateUser = async (req, res) => {
 
     if (status !== undefined) {
       user.status = status;
+
+      // Track manual activation / deactivation
+      if (status === "INACTIVE") {
+        user.isManuallyInactive = true;
+      } else if (status === "ACTIVE") {
+        user.isManuallyInactive = false;
+      }
     }
 
     // ==========================================
@@ -2020,7 +2027,7 @@ const confirmUsersImport = async (req, res) => {
         if (createdUser && normalizedRole === "PAINTER") {
           await User.deleteOne({
             _id: createdUser._id,
-          }).catch(() => {});
+          }).catch(() => { });
         }
 
         let message = "Failed to create user";

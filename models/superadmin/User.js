@@ -117,52 +117,52 @@ const userSchema = new mongoose.Schema(
     // ROLE & REPORTING
     // =========================
 
-   
 
-   // =========================
-// ROLE & REPORTING
-// =========================
 
-role: {
-  type: String,
+    // =========================
+    // ROLE & REPORTING
+    // =========================
 
-  enum: [
-    "SUPER_ADMIN",
-    "DIRECTOR",
+    role: {
+      type: String,
 
-    // Manager Roles
-    "SALES_MANAGER",
-    "PRODUCTION_MANAGER",
-    "ACCOUNT_MANAGER",
-    "MARKETING_MANAGER",
-    "STORE_MANAGER",
-    "HR_ADMIN_EXECUTIVE",
+      enum: [
+        "SUPER_ADMIN",
+        "DIRECTOR",
 
-    // Existing Roles
-    "SALES_EXECUTIVE",
-    "ACCOUNTANT",
-    "STORE_CASHIER",
-    "DEALER",
-    "PAINTER",
+        // Manager Roles
+        "SALES_MANAGER",
+        "PRODUCTION_MANAGER",
+        "ACCOUNT_MANAGER",
+        "MARKETING_MANAGER",
+        "STORE_MANAGER",
+        "HR_ADMIN_EXECUTIVE",
 
-    // Legacy role - existing database compatibility
-    "MANAGER",
-  ],
+        // Existing Roles
+        "SALES_EXECUTIVE",
+        "ACCOUNTANT",
+        "STORE_CASHIER",
+        "DEALER",
+        "PAINTER",
 
-  required: true,
-},
+        // Legacy role - existing database compatibility
+        "MANAGER",
+      ],
 
-reportingTo: {
-  type: String,
-  default: "",
-  trim: true,
-},
+      required: true,
+    },
 
-department: {
-  type: String,
-  default: "",
-  trim: true,
-},
+    reportingTo: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    department: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
     // =========================
     // ACCOUNT DETAILS
@@ -185,6 +185,11 @@ department: {
       ],
 
       default: "ACTIVE",
+    },
+
+    isManuallyInactive: {
+      type: Boolean,
+      default: false,
     },
 
     // =========================
