@@ -13,7 +13,23 @@ const recordUserActivity = async ({
       return null;
     }
 
-    if (!["PAINTER", "DEALER", "SALES_EXECUTIVE"].includes(role)) {
+    const allowedRoles = [
+      "PAINTER",
+      "DEALER",
+      "SALES_EXECUTIVE",
+      "ACCOUNTANT",
+      "STORE_CASHIER",
+      "STORE_MANAGER",
+      "PRODUCTION_MANAGER",
+      "SALES_MANAGER",
+      "ACCOUNT_MANAGER",
+      "MARKETING_MANAGER",
+      // "HR_ADMIN_EXECUTIVE",
+      // "DIRECTOR",
+      // "MANAGER",
+    ];
+
+    if (!allowedRoles.includes(role)) {
       return null;
     }
 

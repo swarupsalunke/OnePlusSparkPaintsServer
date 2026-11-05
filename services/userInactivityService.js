@@ -9,10 +9,24 @@ const checkInactiveUsers = async () => {
 
     const users = await User.find({
       role: {
-        $in: ["PAINTER", "DEALER", "SALES_EXECUTIVE"],
+        $in: [
+          "PAINTER",
+          "DEALER",
+          "SALES_EXECUTIVE",
+          "ACCOUNTANT",
+          "STORE_CASHIER",
+          "STORE_MANAGER",
+          "PRODUCTION_MANAGER",
+          "SALES_MANAGER",
+          "ACCOUNT_MANAGER",
+          "MARKETING_MANAGER",
+          "HR_ADMIN_EXECUTIVE",
+          "DIRECTOR",
+          "MANAGER",
+        ],
       },
       status: "ACTIVE",
-      isManuallyInactive: false,
+      isManuallyInactive: { $ne: true },
     });
 
     let inactiveCount = 0;
@@ -22,7 +36,6 @@ const checkInactiveUsers = async () => {
         user: user._id,
       }).sort({ occurredAt: -1 });
 
-      // If no business activity exists, use account creation date
       const lastActivityDate = lastActivity
         ? lastActivity.occurredAt
         : user.createdAt;
@@ -44,7 +57,6 @@ const checkInactiveUsers = async () => {
 };
 
 const startUserInactivityService = () => {
-  // Run every day at midnight (India time)
   cron.schedule(
     "0 0 * * *",
     () => {

@@ -11,7 +11,21 @@ const userActivitySchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["PAINTER", "DEALER", "SALES_EXECUTIVE"],
+      enum: [
+        "PAINTER",
+        "DEALER",
+        "SALES_EXECUTIVE",
+        "ACCOUNTANT",
+        "STORE_CASHIER",
+        "STORE_MANAGER",
+        "PRODUCTION_MANAGER",
+        "SALES_MANAGER",
+        "ACCOUNT_MANAGER",
+        "MARKETING_MANAGER",
+        // "HR_ADMIN_EXECUTIVE",
+        // "DIRECTOR",
+        // "MANAGER",
+      ],
       required: true,
     },
 
