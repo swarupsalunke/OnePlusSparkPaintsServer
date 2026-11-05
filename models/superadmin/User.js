@@ -117,12 +117,6 @@ const userSchema = new mongoose.Schema(
     // ROLE & REPORTING
     // =========================
 
-
-
-    // =========================
-    // ROLE & REPORTING
-    // =========================
-
     role: {
       type: String,
 
@@ -164,6 +158,31 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    designation: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    territory: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    assignedDealers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     // =========================
     // ACCOUNT DETAILS
     // =========================
@@ -172,6 +191,27 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+    },
+
+    language: {
+      type: String,
+      default: "English",
+      trim: true,
+    },
+
+    notifications: {
+      email: {
+        type: Boolean,
+        default: true,
+      },
+      push: {
+        type: Boolean,
+        default: true,
+      },
+      sms: {
+        type: Boolean,
+        default: true,
+      },
     },
 
     status: {
@@ -185,6 +225,18 @@ const userSchema = new mongoose.Schema(
       ],
 
       default: "ACTIVE",
+    },
+
+    employeeWorkStatus: {
+      type: String,
+      enum: ["WORKING", "ON_LEAVE", "EXITED"],
+      default: "WORKING",
+    },
+
+    dealerApprovalStatus: {
+      type: String,
+      enum: ["PENDING", "APPROVED", "REJECTED", "ON_HOLD"],
+      default: "PENDING",
     },
 
     isManuallyInactive: {

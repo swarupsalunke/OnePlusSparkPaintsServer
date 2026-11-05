@@ -43,6 +43,19 @@ const createUser = async (req, res) => {
       reportingTo,
       department,
 
+      designation,
+      branch,
+      territory,
+      assignedDealers,
+
+      // Other Details
+      language,
+      notifications,
+
+      // Additional Status
+      employeeWorkStatus,
+      dealerApprovalStatus,
+
       // Account Details
       loginType,
       status,
@@ -174,6 +187,75 @@ const createUser = async (req, res) => {
     }
 
     // ==========================================
+    // PARSE ASSIGNED DEALERS
+    // ==========================================
+
+    let parsedAssignedDealers = [];
+
+    if (assignedDealers) {
+      try {
+        parsedAssignedDealers = Array.isArray(assignedDealers)
+          ? assignedDealers
+          : JSON.parse(assignedDealers);
+      } catch (error) {
+        parsedAssignedDealers = [];
+      }
+    }
+
+    // ==========================================
+    // VALIDATE ASSIGNED DEALERS
+    // ==========================================
+
+    if (parsedAssignedDealers.length > 0) {
+      if (role !== "SALES_EXECUTIVE") {
+        return res.status(400).json({
+          success: false,
+          message: "Assigned dealers are only allowed for Sales Executives",
+        });
+      }
+
+      const invalidIds = parsedAssignedDealers.some(
+        (dealerId) => !mongoose.isValidObjectId(dealerId)
+      );
+
+      if (invalidIds) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid dealer ID",
+        });
+      }
+
+      const validDealers = await User.find({
+        _id: { $in: parsedAssignedDealers },
+        role: "DEALER",
+      }).select("_id");
+
+      if (validDealers.length !== parsedAssignedDealers.length) {
+        return res.status(400).json({
+          success: false,
+          message: "One or more assigned dealer IDs are invalid",
+        });
+      }
+    }
+
+    // ==========================================
+    // PARSE NOTIFICATIONS
+    // ==========================================
+
+    let parsedNotifications = {};
+
+    if (notifications) {
+      try {
+        parsedNotifications =
+          typeof notifications === "string"
+            ? JSON.parse(notifications)
+            : notifications;
+      } catch (error) {
+        parsedNotifications = {};
+      }
+    }
+
+    // ==========================================
     // CREATE USER
     // ==========================================
 
@@ -184,21 +266,9 @@ const createUser = async (req, res) => {
       mobile,
       password: hashedPassword,
       role,
-
-      // Profile Picture
       profilePicture,
-
-      // ========================================
-      // PERSONAL DETAILS
-      // ========================================
-
       dateOfBirth: dateOfBirth || null,
       gender: gender || "",
-
-      // ========================================
-      // ADDRESS DETAILS
-      // ========================================
-
       address: address || "",
       addressLine1: addressLine1 || "",
       addressLine2: addressLine2 || "",
@@ -207,37 +277,20 @@ const createUser = async (req, res) => {
       district: district || "",
       city: city || "",
       pinCode: pinCode || "",
-
-      // ========================================
-      // ROLE & REPORTING
-      // ========================================
-
       reportingTo: reportingTo || "",
       department: department || "",
-
-      // ========================================
-      // ACCOUNT DETAILS
-      // ========================================
-
+      designation: designation || "",
+      branch: branch || "",
+      territory: territory || "",
+      assignedDealers: parsedAssignedDealers,
       loginType: loginType || "",
+      language: language || "English",
+      notifications: parsedNotifications,
       status: status || "ACTIVE",
-
-      // ========================================
-      // PERMISSIONS
-      // ========================================
-
+      employeeWorkStatus: employeeWorkStatus || "WORKING",
+      dealerApprovalStatus: dealerApprovalStatus || "PENDING",
       permissions: parsedPermissions,
-
-      // ========================================
-      // NOTES
-      // ========================================
-
       notes: notes || "",
-
-      // ========================================
-      // KYC
-      // ========================================
-
       kyc: parsedKyc,
     });
 
@@ -485,6 +538,18 @@ const updateUser = async (req, res) => {
       // Role & Reporting
       reportingTo,
       department,
+      designation,
+      branch,
+      territory,
+      assignedDealers,
+
+      // Other Details
+      language,
+      notifications,
+
+      // Additional Status
+      employeeWorkStatus,
+      dealerApprovalStatus,
 
       // Account Details
       loginType,
@@ -710,12 +775,145 @@ const updateUser = async (req, res) => {
       user.department = department;
     }
 
+    if (designation !== undefined) {
+      user.designation = designation;
+    }
+
+    if (branch !== undefined) {
+      user.branch = branch;
+    }
+
+    if (territory !== undefined) {
+      user.territory = territory;
+    }
+
+    // ==========================================
+    // ASSIGNED DEALERS
+    // ==========================================
+
+    if (assignedDealers !== undefined) {
+      let parsedAssignedDealers;
+
+      try {
+        parsedAssignedDealers =
+          Array.isArray(assignedDealers)
+            ? assignedDealers
+            : JSON.parse(assignedDealers);
+
+        if (!Array.isArray(parsedAssignedDealers)) {
+          return res.status(400).json({
+            success: false,
+            message: "Assigned dealers must be an array",
+          });
+        }
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid assigned dealers data",
+        });
+      }
+
+      const effectiveRole = role !== undefined ? role : user.role;
+
+      if (
+        parsedAssignedDealers.length > 0 &&
+        effectiveRole !== "SALES_EXECUTIVE"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Assigned dealers are only allowed for Sales Executives",
+        });
+      }
+
+      const validDealers = await User.find({
+        _id: { $in: parsedAssignedDealers },
+        role: "DEALER",
+      }).select("_id");
+
+      if (validDealers.length !== parsedAssignedDealers.length) {
+        return res.status(400).json({
+          success: false,
+          message: "One or more assigned dealer IDs are invalid",
+        });
+      }
+
+      user.assignedDealers = parsedAssignedDealers;
+    }
+
+    // ==========================================
+    // VALIDATE ROLE AND ASSIGNED DEALERS
+    // ==========================================
+
+    if (
+      user.role !== "SALES_EXECUTIVE" &&
+      user.assignedDealers?.length > 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please remove assigned dealers before changing this user's role",
+      });
+    }
+
     // ==========================================
     // ACCOUNT DETAILS
     // ==========================================
 
     if (loginType !== undefined) {
       user.loginType = loginType;
+    }
+
+    // ==========================================
+    // OTHER DETAILS
+    // ==========================================
+
+    if (language !== undefined) {
+      user.language = language;
+    }
+
+    if (notifications !== undefined) {
+      let parsedNotifications;
+
+      try {
+        parsedNotifications =
+          typeof notifications === "string"
+            ? JSON.parse(notifications)
+            : notifications;
+
+        if (
+          !parsedNotifications ||
+          typeof parsedNotifications !== "object" ||
+          Array.isArray(parsedNotifications)
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid notifications data",
+          });
+        }
+
+        user.notifications = {
+          ...(user.notifications?.toObject
+            ? user.notifications.toObject()
+            : user.notifications || {}),
+          ...parsedNotifications,
+        };
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid notifications data",
+        });
+      }
+    }
+
+    // ==========================================
+    // ADDITIONAL STATUS
+    // ==========================================
+
+    if (employeeWorkStatus !== undefined) {
+      user.employeeWorkStatus = employeeWorkStatus;
+    }
+
+    if (dealerApprovalStatus !== undefined) {
+      user.dealerApprovalStatus = dealerApprovalStatus;
     }
 
     if (status !== undefined) {
