@@ -2,10 +2,10 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const dotenv = require("dotenv");
 const dns = require("dns");
-try { 
+try {
   dns.setServers(["8.8.8.8", "1.1.1.1"]);
-  dns.setDefaultResultOrder("ipv4first"); 
-} catch (e) {}
+  dns.setDefaultResultOrder("ipv4first");
+} catch (e) { }
 dotenv.config();
 
 // Import all models
@@ -50,7 +50,7 @@ const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://guruteckinfo_db_user:S
 async function migrateData() {
   console.log("Connecting to MongoDB Atlas...");
   console.log("URI:", MONGO_URI.replace(/:([^@]+)@/, ":****@"));
-  
+
   await mongoose.connect(MONGO_URI, {
     serverSelectionTimeoutMS: 10000,
     tls: true,
