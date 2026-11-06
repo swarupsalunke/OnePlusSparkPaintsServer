@@ -2,6 +2,12 @@ const express = require("express");
 
 const router = express.Router();
 
+const dailyCashReportUpload = require("../../middleware/dailyCashReportUpload");
+
+const {
+  uploadDailyCashReportFile,
+} = require("../../controllers/superadmin/dailyCashReportUploadController");
+
 const {
   createDailyCashReport,
   getDailyCashReports,
@@ -47,6 +53,14 @@ router.get(
 // ==========================================
 // GET SINGLE
 // ==========================================
+
+router.post(
+  "/upload",
+  authMiddleware,
+  roleMiddleware("SUPER_ADMIN", "DIRECTOR", "MANAGER"),
+  dailyCashReportUpload.single("file"),
+  uploadDailyCashReportFile
+);
 
 router.get(
   "/:id",
