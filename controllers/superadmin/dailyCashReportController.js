@@ -787,6 +787,95 @@ const rejectOpeningBalance = async (req, res) => {
   }
 };
 
+// ==========================================
+// RESUBMIT REJECTED OPENING CASH BALANCE
+// ==========================================
+
+const resubmitOpeningBalance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { openingCashBalance } = req.body;
+
+    if (
+      openingCashBalance === undefined ||
+      openingCashBalance === null ||
+      openingCashBalance === "" ||
+      !Number.isFinite(Number(openingCashBalance)) ||
+      Number(openingCashBalance) < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid opening cash balance",
+      });
+    }
+
+    const report = await DailyCashReport.findById(id);
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Daily cash report not found",
+      });
+    }
+
+    if (report.openingBalanceSource !== "MANUAL") {
+      return res.status(400).json({
+        success: false,
+        message: "Only manual opening cash can be resubmitted",
+      });
+    }
+
+    if (report.openingBalanceStatus !== "REJECTED") {
+      return res.status(400).json({
+        success: false,
+        message: "Only rejected opening balances can be resubmitted",
+      });
+    }
+
+    if (report.status === "APPROVED") {
+      return res.status(403).json({
+        success: false,
+        message: "Approved reports cannot be modified",
+      });
+    }
+
+    report.openingCashBalance = Number(openingCashBalance);
+    report.openingBalanceStatus = "PENDING";
+
+    // Clear previous rejection details
+    report.openingBalanceRejectedBy = null;
+    report.openingBalanceRejectedAt = null;
+    report.openingBalanceRejectionReason = "";
+
+    // Clear previous opening approval details
+    report.openingBalanceApprovedBy = null;
+    report.openingBalanceApprovedAt = null;
+
+    // Recalculate report totals
+    const calculatedTotals = calculateReportTotals(
+      report.toObject()
+    );
+
+    Object.assign(report, calculatedTotals);
+
+    await report.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Opening cash balance resubmitted for approval",
+      report,
+    });
+  } catch (error) {
+    console.error("Resubmit opening balance error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to resubmit opening cash balance",
+      error: error.message,
+    });
+  }
+};
+
 
 // ==========================================
 // APPROVE DAILY CASH REPORT
@@ -911,4 +1000,5 @@ module.exports = {
   rejectDailyCashReport,
   approveOpeningBalance,
   rejectOpeningBalance,
+  resubmitOpeningBalance,
 };

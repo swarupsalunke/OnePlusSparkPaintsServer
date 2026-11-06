@@ -18,6 +18,7 @@ const {
   rejectDailyCashReport,
   approveOpeningBalance,
   rejectOpeningBalance,
+  resubmitOpeningBalance,
 } = require("../../controllers/superadmin/dailyCashReportController");
 
 const authMiddleware = require("../../middleware/authMiddleware");
@@ -94,6 +95,14 @@ router.post(
   authMiddleware,
   roleMiddleware("SUPER_ADMIN", "DIRECTOR"),
   rejectDailyCashReport
+);
+
+// opening balance resubmit
+router.put(
+  "/:id/opening-balance/resubmit",
+  authMiddleware,
+  roleMiddleware("SUPER_ADMIN", "DIRECTOR", "MANAGER"),
+  resubmitOpeningBalance
 );
 
 // OPENING CASH APPROVAL
