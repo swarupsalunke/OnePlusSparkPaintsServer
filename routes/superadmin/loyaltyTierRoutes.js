@@ -8,6 +8,8 @@ const {
   updateLoyaltyTierStatus,
   deleteLoyaltyTier,
   getLoyaltyTierStats,
+  createLoyaltyTierType,
+  getAllLoyaltyTierTypes,
 } = require("../../controllers/superadmin/loyaltyTierController");
 
 const router = express.Router();
@@ -19,39 +21,21 @@ const router = express.Router();
 router.get("/stats", getLoyaltyTierStats);
 
 // =====================================================
-// CREATE LOYALTY TIER
+// TIER TYPE ROUTES
+// =====================================================
+
+router.post("/types", createLoyaltyTierType);
+router.get("/types", getAllLoyaltyTierTypes);
+
+// =====================================================
+// LOYALTY TIER ROUTES
 // =====================================================
 
 router.post("/", createLoyaltyTier);
-
-// =====================================================
-// GET ALL LOYALTY TIERS
-// =====================================================
-
 router.get("/", getAllLoyaltyTiers);
-
-// =====================================================
-// GET SINGLE LOYALTY TIER
-// =====================================================
-
 router.get("/:id", getLoyaltyTierById);
-
-// =====================================================
-// UPDATE LOYALTY TIER
-// =====================================================
-
 router.put("/:id", updateLoyaltyTier);
-
-// =====================================================
-// UPDATE TIER STATUS
-// =====================================================
-
 router.patch("/:id/status", updateLoyaltyTierStatus);
-
-// =====================================================
-// DELETE LOYALTY TIER
-// =====================================================
-
 router.delete("/:id", deleteLoyaltyTier);
 
 module.exports = router;
