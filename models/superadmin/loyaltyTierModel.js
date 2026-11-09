@@ -14,6 +14,30 @@ const loyaltyTierSchema = new mongoose.Schema(
       min: 1,
     },
 
+    minPoints: {
+  type: Number,
+  required: true,
+  min: 0,
+},
+
+maxPoints: {
+  type: Number,
+  required: true,
+  min: 0,
+},
+
+cashReward: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+
+giftReward: {
+  type: String,
+  default: "-",
+  trim: true,
+},
+
     tierType: {
       type: String,
       default: "STANDARD",
