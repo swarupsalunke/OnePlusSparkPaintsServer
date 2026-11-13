@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const dispatchSchema = new mongoose.Schema(
@@ -36,6 +37,14 @@ const dispatchSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Total order quantity
+    orderedQuantity: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    // Quantity dispatched in this entry
     quantity: {
       type: Number,
       required: true,
@@ -46,6 +55,12 @@ const dispatchSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+
+    fulfillmentStatus: {
+      type: String,
+      enum: ["PENDING", "PARTIAL", "COMPLETE"],
+      default: "PENDING",
     },
 
     driver: {

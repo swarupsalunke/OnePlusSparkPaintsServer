@@ -47,6 +47,7 @@ const getUploadedFiles = (req) => {
 // CREATE DISPATCH
 // ======================================================
 
+
 const createDispatch = async (req, res) => {
   try {
     const {
@@ -54,6 +55,7 @@ const createDispatch = async (req, res) => {
       invoice,
       route,
       destination,
+      orderedQuantity,
       quantity,
       unit,
       driver,
@@ -66,21 +68,33 @@ const createDispatch = async (req, res) => {
       dispatchDate,
     } = req.body;
 
+    // Required fields validation
     if (
       !customer ||
       !invoice ||
+      orderedQuantity === undefined ||
       quantity === undefined ||
       !unit
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Please provide customer, invoice, quantity and unit",
+          "Please provide customer, invoice, ordered quantity, dispatch quantity and unit",
       });
     }
 
-    const numericQuantity =
-      Number(quantity);
+    const numericOrderedQuantity = Number(orderedQuantity);
+    const numericQuantity = Number(quantity);
+
+    if (
+      !Number.isFinite(numericOrderedQuantity) ||
+      numericOrderedQuantity <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Ordered quantity must be greater than 0",
+      });
+    }
 
     if (
       !Number.isFinite(numericQuantity) ||
@@ -88,112 +102,149 @@ const createDispatch = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Quantity must be greater than 0",
+        message: "Dispatch quantity must be greater than 0",
       });
     }
 
-    const uploadedFiles =
-      getUploadedFiles(req);
-
-    const dispatchNumber =
-      await generateDispatchNumber();
-
-    const dispatch =
-      await Dispatch.create({
-        dispatchNumber,
-
-        dispatchDate:
-          dispatchDate || new Date(),
-
-        customer,
-        invoice,
-
-        route:
-          route || "",
-
-        destination:
-          destination || "",
-
-        quantity:
-          numericQuantity,
-
-        unit,
-
-        driver:
-          driver || "",
-
-        vehicle:
-          vehicle || "",
-
-        transportMode:
-          transportMode || "",
-
-        transporter:
-          transporter || "",
-
-        dispatchTeam:
-          Array.isArray(dispatchTeam)
-            ? dispatchTeam
-            : dispatchTeam
-              ? [dispatchTeam]
-              : [],
-
-        // Uploaded files
-        pod:
-          uploadedFiles.pod,
-
-        vehiclePhotos:
-          uploadedFiles.vehiclePhotos,
-
-        invoiceUpload:
-          uploadedFiles.invoiceUpload,
-
-        deliveryChallan:
-          uploadedFiles.deliveryChallan,
-
-        acknowledgement:
-          uploadedFiles.acknowledgement,
-
-        status:
-          status || "PENDING",
-
-        remarks:
-          remarks || "",
-
-        createdBy:
-          req.user?.userId || null,
+    if (numericQuantity > numericOrderedQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: "Dispatch quantity cannot exceed ordered quantity",
       });
+    }
 
-    const populatedDispatch =
-      await Dispatch.findById(
-        dispatch._id
-      ).populate(
-        "createdBy",
-        "name email"
+    // Find existing dispatches for the same customer and invoice
+    const existingDispatches = await Dispatch.find({
+      customer: customer.trim(),
+      invoice: invoice.trim(),
+    });
+
+    // Check ordered quantity consistency
+    if (
+      existingDispatches.length > 0 &&
+      existingDispatches.some(
+        (item) =>
+          Number(item.orderedQuantity) !== numericOrderedQuantity
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Ordered quantity must remain the same for this invoice",
+      });
+    }
+
+    // Calculate already dispatched quantity
+    const previousDispatchedQuantity =
+      existingDispatches.reduce(
+        (total, item) => total + Number(item.quantity || 0),
+        0
       );
+
+    const totalDispatchedQuantity =
+      previousDispatchedQuantity + numericQuantity;
+
+    // Prevent dispatching more than the ordered quantity
+    if (totalDispatchedQuantity > numericOrderedQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${numericOrderedQuantity - previousDispatchedQuantity
+          } quantity is remaining for this invoice`,
+      });
+    }
+
+    // Calculate fulfillment status
+    const fulfillmentStatus =
+      totalDispatchedQuantity >= numericOrderedQuantity
+        ? "COMPLETE"
+        : "PARTIAL";
+
+    const uploadedFiles = getUploadedFiles(req);
+
+    const dispatchNumber = await generateDispatchNumber();
+
+    // Create new dispatch entry
+    const dispatch = await Dispatch.create({
+      dispatchNumber,
+
+      dispatchDate: dispatchDate || new Date(),
+
+      customer: customer.trim(),
+      invoice: invoice.trim(),
+
+      route: route || "",
+      destination: destination || "",
+
+      orderedQuantity: numericOrderedQuantity,
+      quantity: numericQuantity,
+      unit,
+
+      fulfillmentStatus,
+
+      driver: driver || "",
+      vehicle: vehicle || "",
+      transportMode: transportMode || "",
+      transporter: transporter || "",
+
+      dispatchTeam: Array.isArray(dispatchTeam)
+        ? dispatchTeam
+        : dispatchTeam
+          ? [dispatchTeam]
+          : [],
+
+      pod: uploadedFiles.pod,
+      vehiclePhotos: uploadedFiles.vehiclePhotos,
+      invoiceUpload: uploadedFiles.invoiceUpload,
+      deliveryChallan: uploadedFiles.deliveryChallan,
+      acknowledgement: uploadedFiles.acknowledgement,
+
+      status: status || "PENDING",
+      remarks: remarks || "",
+
+      createdBy: req.user?.userId || null,
+    });
+
+    // Keep fulfillment status synchronized across all
+    // dispatch entries belonging to this invoice
+    await Dispatch.updateMany(
+      {
+        customer: customer.trim(),
+        invoice: invoice.trim(),
+      },
+      {
+        $set: {
+          fulfillmentStatus,
+        },
+      }
+    );
+
+    const populatedDispatch = await Dispatch.findById(
+      dispatch._id
+    ).populate("createdBy", "name email");
 
     return res.status(201).json({
       success: true,
-      message:
-        "Dispatch created successfully",
-      dispatch:
-        populatedDispatch,
+      message: "Dispatch created successfully",
+      dispatch: populatedDispatch,
+      fulfillment: {
+        orderedQuantity: numericOrderedQuantity,
+        dispatchedQuantity: totalDispatchedQuantity,
+        pendingQuantity:
+          numericOrderedQuantity - totalDispatchedQuantity,
+        fulfillmentStatus,
+      },
     });
   } catch (error) {
-    console.error(
-      "Create dispatch error:",
-      error
-    );
+    console.error("Create dispatch error:", error);
 
     return res.status(500).json({
       success: false,
-      message:
-        "Failed to create dispatch",
+      message: "Failed to create dispatch",
       error: error.message,
     });
   }
 };
+
 
 // ======================================================
 // GET ALL DISPATCHES
@@ -384,26 +435,124 @@ const getDispatchById = async (
 // UPDATE DISPATCH
 // ======================================================
 
-const updateDispatch = async (
-  req,
-  res
-) => {
+
+const updateDispatch = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const updateData = {
-      ...req.body,
-    };
+    const existingDispatch = await Dispatch.findById(id);
 
-    const uploadedFiles =
-      getUploadedFiles(req);
+    if (!existingDispatch) {
+      return res.status(404).json({
+        success: false,
+        message: "Dispatch not found",
+      });
+    }
 
-    // Update uploaded files only
-    // when a new file is provided.
+    const updateData = { ...req.body };
+
+    // Prepare customer and invoice
+    const customer =
+      updateData.customer?.trim() || existingDispatch.customer;
+
+    const invoice =
+      updateData.invoice?.trim() || existingDispatch.invoice;
+
+    // Prepare quantities
+    const orderedQuantity =
+      updateData.orderedQuantity !== undefined
+        ? Number(updateData.orderedQuantity)
+        : Number(existingDispatch.orderedQuantity);
+
+    const quantity =
+      updateData.quantity !== undefined
+        ? Number(updateData.quantity)
+        : Number(existingDispatch.quantity);
+
+    if (
+      !Number.isFinite(orderedQuantity) ||
+      orderedQuantity <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Ordered quantity must be greater than 0",
+      });
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Dispatch quantity must be greater than 0",
+      });
+    }
+
+    // Find other dispatch entries for this invoice
+    const otherDispatches = await Dispatch.find({
+      customer,
+      invoice,
+      _id: { $ne: id },
+    });
+
+    // Keep ordered quantity consistent
+    const inconsistentOrder = otherDispatches.some(
+      (item) =>
+        Number(item.orderedQuantity) !== orderedQuantity
+    );
+
+    if (inconsistentOrder) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Ordered quantity must remain the same for this invoice",
+      });
+    }
+
+    // Calculate cumulative dispatched quantity
+    const previousQuantity = otherDispatches.reduce(
+      (total, item) => total + Number(item.quantity || 0),
+      0
+    );
+
+    const totalDispatchedQuantity =
+      previousQuantity + quantity;
+
+    if (totalDispatchedQuantity > orderedQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${orderedQuantity - previousQuantity
+          } quantity is remaining for this invoice`,
+      });
+    }
+
+    // Update fields
+    updateData.customer = customer;
+    updateData.invoice = invoice;
+    updateData.orderedQuantity = orderedQuantity;
+    updateData.quantity = quantity;
+
+    // Fulfillment status is calculated, not manually edited
+    delete updateData.fulfillmentStatus;
+
+    // Convert dispatch team
+    if (typeof updateData.dispatchTeam === "string") {
+      try {
+        const parsed = JSON.parse(updateData.dispatchTeam);
+
+        updateData.dispatchTeam = Array.isArray(parsed)
+          ? parsed
+          : [updateData.dispatchTeam];
+      } catch {
+        updateData.dispatchTeam = [
+          updateData.dispatchTeam,
+        ];
+      }
+    }
+
+    // Handle uploaded files
+    const uploadedFiles = getUploadedFiles(req);
 
     if (uploadedFiles.pod) {
-      updateData.pod =
-        uploadedFiles.pod;
+      updateData.pod = uploadedFiles.pod;
     }
 
     if (uploadedFiles.invoiceUpload) {
@@ -421,105 +570,109 @@ const updateDispatch = async (
         uploadedFiles.acknowledgement;
     }
 
-    if (
-      uploadedFiles.vehiclePhotos
-        .length > 0
-    ) {
+    if (uploadedFiles.vehiclePhotos.length > 0) {
       updateData.vehiclePhotos =
         uploadedFiles.vehiclePhotos;
     }
 
-    // Convert dispatchTeam
-    // when sent through form-data.
-
-    if (
-      typeof updateData.dispatchTeam ===
-      "string"
-    ) {
-      try {
-        const parsed =
-          JSON.parse(
-            updateData.dispatchTeam
-          );
-
-        updateData.dispatchTeam =
-          Array.isArray(parsed)
-            ? parsed
-            : [updateData.dispatchTeam];
-      } catch {
-        updateData.dispatchTeam = [
-          updateData.dispatchTeam,
-        ];
+    // Update dispatch record
+    const dispatch = await Dispatch.findByIdAndUpdate(
+      id,
+      updateData,
+      {
+        returnDocument: "after",
+        runValidators: true,
       }
-    }
+    ).populate("createdBy", "name email");
 
-    // Convert numeric quantity
-    // when sent through form-data.
-
-    if (
-      updateData.quantity !==
-      undefined &&
-      updateData.quantity !== ""
-    ) {
-      updateData.quantity = Number(
-        updateData.quantity
-      );
-
-      if (
-        !Number.isFinite(
-          updateData.quantity
-        ) ||
-        updateData.quantity <= 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Quantity must be greater than 0",
-        });
-      }
-    }
-
-    const dispatch =
-      await Dispatch.findByIdAndUpdate(
-        id,
-        updateData,
-        {
-          returnDocument: "after",
-          runValidators: true,
-        }
-      ).populate(
-        "createdBy",
-        "name email"
-      );
-
-    if (!dispatch) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Dispatch not found",
+    // Recalculate fulfillment status for an invoice group
+    const syncFulfillmentStatus = async (
+      groupCustomer,
+      groupInvoice
+    ) => {
+      const records = await Dispatch.find({
+        customer: groupCustomer,
+        invoice: groupInvoice,
       });
+
+      if (!records.length) return;
+
+      const groupOrderedQuantity =
+        Number(records[0].orderedQuantity);
+
+      const groupDispatchedQuantity =
+        records.reduce(
+          (total, item) => total + Number(item.quantity || 0),
+          0
+        );
+
+      const fulfillmentStatus =
+        groupDispatchedQuantity === 0
+          ? "PENDING"
+          : groupDispatchedQuantity >= groupOrderedQuantity
+            ? "COMPLETE"
+            : "PARTIAL";
+
+      await Dispatch.updateMany(
+        {
+          customer: groupCustomer,
+          invoice: groupInvoice,
+        },
+        {
+          $set: { fulfillmentStatus },
+        }
+      );
+    };
+
+    // Recalculate old invoice group if customer/invoice changed
+    const oldCustomer = existingDispatch.customer;
+    const oldInvoice = existingDispatch.invoice;
+
+    if (
+      oldCustomer !== customer ||
+      oldInvoice !== invoice
+    ) {
+      await syncFulfillmentStatus(
+        oldCustomer,
+        oldInvoice
+      );
     }
+
+    // Recalculate current invoice group
+    await syncFulfillmentStatus(customer, invoice);
+
+    // Fetch latest updated record
+    const updatedDispatch = await Dispatch.findById(id)
+      .populate("createdBy", "name email");
+
+    const pendingQuantity =
+      orderedQuantity - totalDispatchedQuantity;
 
     return res.status(200).json({
       success: true,
-      message:
-        "Dispatch updated successfully",
-      dispatch,
+      message: "Dispatch updated successfully",
+      dispatch: updatedDispatch,
+      fulfillment: {
+        orderedQuantity,
+        dispatchedQuantity: totalDispatchedQuantity,
+        pendingQuantity,
+        fulfillmentStatus:
+          totalDispatchedQuantity >= orderedQuantity
+            ? "COMPLETE"
+            : "PARTIAL",
+      },
     });
   } catch (error) {
-    console.error(
-      "Update dispatch error:",
-      error
-    );
+    console.error("Update dispatch error:", error);
 
     return res.status(500).json({
       success: false,
-      message:
-        "Failed to update dispatch",
+      message: "Failed to update dispatch",
       error: error.message,
     });
   }
 };
+
 
 // ======================================================
 // UPDATE STATUS
