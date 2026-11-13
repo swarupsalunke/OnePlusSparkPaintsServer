@@ -48,6 +48,7 @@ const getUploadedFiles = (req) => {
 // ======================================================
 
 
+
 const createDispatch = async (req, res) => {
   try {
     const {
@@ -144,12 +145,13 @@ const createDispatch = async (req, res) => {
     const totalDispatchedQuantity =
       previousDispatchedQuantity + numericQuantity;
 
-    // Prevent dispatching more than the ordered quantity
+    // Prevent over-dispatch
     if (totalDispatchedQuantity > numericOrderedQuantity) {
       return res.status(400).json({
         success: false,
-        message: `Only ${numericOrderedQuantity - previousDispatchedQuantity
-          } quantity is remaining for this invoice`,
+        message: `Only ${
+          numericOrderedQuantity - previousDispatchedQuantity
+        } quantity is remaining for this invoice`,
       });
     }
 
@@ -161,12 +163,10 @@ const createDispatch = async (req, res) => {
 
     const uploadedFiles = getUploadedFiles(req);
 
-    const dispatchNumber = await generateDispatchNumber();
+    const currentYear = new Date().getFullYear();
+    const prefix = `DSP-${currentYear}-`;
 
-    // Create new dispatch entry
-    const dispatch = await Dispatch.create({
-      dispatchNumber,
-
+    const dispatchData = {
       dispatchDate: dispatchDate || new Date(),
 
       customer: customer.trim(),
@@ -202,10 +202,54 @@ const createDispatch = async (req, res) => {
       remarks: remarks || "",
 
       createdBy: req.user?.userId || null,
-    });
+    };
 
-    // Keep fulfillment status synchronized across all
-    // dispatch entries belonging to this invoice
+    // Generate a unique dispatch number and retry on duplicate key
+    let dispatch = null;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (!dispatch && attempts < maxAttempts) {
+      attempts++;
+
+      const latestDispatch = await Dispatch.findOne({
+        dispatchNumber: {
+          $regex: `^${prefix}`,
+        },
+      }).sort({ dispatchNumber: -1 });
+
+      const lastNumber = latestDispatch
+        ? Number(latestDispatch.dispatchNumber.split("-").pop()) || 0
+        : 0;
+
+      const nextNumber = lastNumber + 1;
+
+      const dispatchNumber = `${prefix}${String(nextNumber).padStart(
+        4,
+        "0"
+      )}`;
+
+      try {
+        dispatch = await Dispatch.create({
+          ...dispatchData,
+          dispatchNumber,
+        });
+      } catch (error) {
+        if (error.code === 11000 && attempts < maxAttempts) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    if (!dispatch) {
+      throw new Error(
+        "Unable to generate a unique dispatch number. Please try again."
+      );
+    }
+
+    // Synchronize fulfillment status across invoice dispatches
     await Dispatch.updateMany(
       {
         customer: customer.trim(),
@@ -244,6 +288,7 @@ const createDispatch = async (req, res) => {
     });
   }
 };
+
 
 
 // ======================================================
