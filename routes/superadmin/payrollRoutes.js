@@ -7,6 +7,7 @@ const {
   saveEmployeeSalary,
   processPayroll,
   getPayrollRecords,
+  updatePayrollStatus,
 } = require("../../controllers/superadmin/payrollController");
 
 // Employee salary
@@ -16,5 +17,7 @@ router.put("/salary/:employeeId", saveEmployeeSalary);
 // Monthly payroll
 router.post("/process", processPayroll);
 router.get("/", getPayrollRecords);
+router.put("/status/:payrollId", updatePayrollStatus);
+router.patch("/:payrollId/status", updatePayrollStatus);
 
 module.exports = router;

@@ -217,3 +217,45 @@ exports.getPayrollRecords = async (req, res) => {
     });
   }
 };
+// UPDATE PAYROLL PAYMENT STATUS
+exports.updatePayrollStatus = async (req, res) => {
+  try {
+    const { payrollId } = req.params;
+    const { paymentStatus } = req.body;
+
+    if (!["PENDING", "PAID"].includes(paymentStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment status",
+      });
+    }
+
+    const payroll = await Payroll.findById(payrollId);
+
+    if (!payroll) {
+      return res.status(404).json({
+        success: false,
+        message: "Payroll record not found",
+      });
+    }
+
+    payroll.paymentStatus = paymentStatus;
+    await payroll.save();
+
+    await payroll.populate(
+      "employee",
+      "employeeId name department designation"
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Payroll status updated to ${paymentStatus}`,
+      payroll,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
