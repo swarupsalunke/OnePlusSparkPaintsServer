@@ -34,6 +34,7 @@ const inboundMaterialRoutes = require("./routes/superadmin/inboundMaterialRoutes
 const advanceSalaryRoutes = require("./routes/superadmin/advanceSalaryRoutes");
 const leaveRoutes = require("./routes/superadmin/leaveRoutes");
 const employeeRoutes = require("./routes/superadmin/employeeRoutes");
+const attendanceRoutes = require("./routes/superadmin/attendanceRoutes");
 const commissionRoutes = require("./routes/superadmin/commissionRoutes");
 const notificationRoutes = require("./routes/superadmin/notificationRoutes");
 const documentRoutes = require("./routes/superadmin/documentRoutes");
@@ -320,6 +321,7 @@ app.use("/api/inbound", inboundMaterialRoutes);
 app.use("/api/advance-salary", advanceSalaryRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/hr/employees", employeeRoutes);
+app.use("/api/hr/attendance", attendanceRoutes);
 app.use("/api/commissions", commissionRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/documents", documentRoutes);
@@ -337,6 +339,7 @@ app.use("/api/social-media", socialMediaRoutes);
 app.use("/api/dashboard-preferences", dashboardPreferenceRoutes);
 app.use("/api/suppliers-vendors", supplierVendorRoutes);
 app.use("/api/internal-communication", internalCommunicationRoutes);
+
 
 // painter
 app.use("/api/painter", painterDashboardRoutes);
